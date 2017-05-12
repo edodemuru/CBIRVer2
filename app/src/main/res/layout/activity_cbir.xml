@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:tools="http://schemas.android.com/tools"
+android:id="@+id/activity_cbir"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+
+tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
+
+<TextView
+    android:id="@+id/insert_query_image_text_view"
+    android:layout_centerInParent="true"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Seleziona un'immagine!" />
+
+<ImageView
+    android:id="@+id/sad_smile_image_view"
+    android:src="@mipmap/ic_sentiment_dissatisfied_black_48dp"
+    android:layout_marginBottom="16dp"
+    android:layout_above="@id/insert_query_image_text_view"
+    android:layout_centerInParent="true"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:visibility="gone"
+    />
+
+<android.support.design.widget.FloatingActionButton
+    android:id="@+id/insert_query_image_button"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_alignParentBottom="true"
+    android:layout_alignParentRight="true"
+    android:src="@mipmap/ic_image_white_24dp"
+    android:layout_marginRight="16dp"
+    android:layout_marginBottom="16dp"
+    />
+
+<ListView
+    android:padding="0dp"
+    android:layout_margin="0dp"
+    android:visibility="gone"
+    android:id="@+id/imagesList"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+</ListView>
+
+</RelativeLayout>
