@@ -7,14 +7,56 @@ android:layout_height="match_parent"
 
 tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
 
-<TextView
-    android:id="@+id/insert_query_image_text_view"
-    android:layout_centerInParent="true"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="Seleziona un'immagine!" />
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Scegli un descrittore"
+        android:layout_marginTop="0dp"
+        android:layout_below="@+id/sad_smile_image_view"
+        android:textStyle="bold"
+        android:layout_alignParentStart="true" />
 
-<ImageView
+    <RadioGroup
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_weight="1.03"
+        android:orientation="vertical"
+        android:checkedButton="@id/istogramma"
+        android:id="@+id/groupDescrittoreIstogramma"
+        android:layout_marginTop="25dp"
+        android:layout_below="@+id/imagesList"
+        android:layout_alignParentStart="true">
+
+        <RadioButton
+            android:id="@+id/descrittoreIstogramma"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="onRadioButtonClicked"
+            android:text="Istogramma" />
+
+        <RadioButton
+            android:id="@+id/descrittoreLbp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            android:layout_toEndOf="@+id/sad_smile_image_view"
+            android:onClick="onRadioButtonClicked"
+            android:text="Local Binary Pattern" />
+
+        <RadioButton
+            android:id="@+id/descrittoreEntrambi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            android:layout_toEndOf="@+id/sad_smile_image_view"
+            android:onClick="onRadioButtonClicked"
+            android:text="Entrambi" />
+
+
+    </RadioGroup>
+
+    <ImageView
     android:id="@+id/sad_smile_image_view"
     android:src="@mipmap/ic_sentiment_dissatisfied_black_48dp"
     android:layout_marginBottom="16dp"
@@ -45,5 +87,15 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
     android:layout_height="match_parent">
 
 </ListView>
+
+    <TextView
+        android:id="@+id/insert_query_image_text_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Seleziona un'immagine!"
+        android:textStyle="bold"
+        android:layout_marginTop="18dp"
+        android:layout_below="@+id/groupDescrittoreIstogramma"
+        android:layout_alignParentStart="true" />
 
 </RelativeLayout>

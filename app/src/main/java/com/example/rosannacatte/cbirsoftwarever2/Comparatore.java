@@ -20,6 +20,8 @@ public class Comparatore {
 
     private static final int TOTAL_DIMENSION = 375;
 
+    private static final int immaginiAnalizzate=5;
+
 
 
     //Elenco percorso immagini salvate sullo smartphone
@@ -56,7 +58,7 @@ public class Comparatore {
         ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
 
         //Adesso devo fare il confronto tra le features dell'immagine di query e le features delle immagini contenute nel dispositivo
-        for(int i = 0; i < listaPercorsoImmagini.size(); i++){
+        for(int i = 0; i < immaginiAnalizzate; i++){
 
             String currentImage = listaPercorsoImmagini.get(i);
 

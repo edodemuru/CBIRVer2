@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">Tesi_Prova01</string>
     <string name="insert_query_image_button_text">Scegli Immagine</string>
+    <item type="id" name="istogramma"></item>
+    <item type="id" name="insert_query_image_text_view"></item>
 </resources>

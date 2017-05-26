@@ -18,7 +18,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.OpenCVLoader;
@@ -43,6 +46,8 @@ public class Cbir extends AppCompatActivity {
     private static final int SELECT_PICTURE = 1;
 
     private static final int PERMISSION_REQUEST_CODE = 200;
+
+    private static final int immaginiAnalizzate=5;
 
     // Numero di immagini escluse dal calcolo delle features
     public int immagini_Escluse=0;
@@ -103,6 +108,8 @@ public class Cbir extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cbir);
 
+
+
         //Recupero un sharedPreference per indicizzare la galleria
         //Dato che mi serve un solo file uso getPreferences
         preference = getSharedPreferences(FEATURES_FILE_NAME , MODE_PRIVATE);
@@ -155,6 +162,36 @@ public class Cbir extends AppCompatActivity {
 
         }
 
+
+
+    }
+
+    public void onRadioButtonClicked(View view) {
+        // Is the button now checked?
+        boolean checked = ((RadioButton) view).isChecked();
+
+        
+
+        // Check which radio button was clicked
+        switch(view.getId()) {
+            case R.id.descrittoreIstogramma:
+                if (checked){
+                    Toast.makeText(getApplicationContext(),"Hai scelto Istogramma", Toast.LENGTH_SHORT).show();
+
+                }
+                    break;
+            case R.id.descrittoreLbp:
+                if (checked){
+                    Toast.makeText(getApplicationContext(),"Hai scelto LBP", Toast.LENGTH_SHORT).show();
+                }
+                    break;
+            case R.id.descrittoreEntrambi:
+                if(checked){
+                Toast.makeText(getApplicationContext(),"Hai scelto entrambi i descrittori", Toast.LENGTH_SHORT).show();
+                }
+                break;
+
+        }
     }
 
     //Metodo per verifica dei permessi
@@ -224,6 +261,7 @@ public class Cbir extends AppCompatActivity {
     //Android gestisce le immagini mediante l'utilizzo di un contentProvider che comunica con il database dove sono salvati tutti i percorsi delle immagini
     //Nel caso delle foto parliamo di MediaStore.Image
     //Noi comunichiamo direttamente con un contentResolver che si occupa di connetterci al conentProvider
+
     private ArrayList<String> recuperaPercorsoImmagini(){
         //URI per la tabella dove sono situati tutti i percorsi delle immagini
         Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
@@ -275,7 +313,7 @@ public class Cbir extends AppCompatActivity {
         */
 
 
-        for(int i = 0; i < percorsoImmagini.size(); i++) {
+        for(int i = 0; i < 5; i++) {
 
             percorsoImmagine = percorsoImmagini.get(i);
 
@@ -301,7 +339,7 @@ public class Cbir extends AppCompatActivity {
             editor.putStringSet(percorsoImmagine, listaFeatures);
         }
         else {
-                //Numero di immagini che non è possibile indicizzare
+                //Immagini che non è possibile indicizzare
                 immagini_Escluse++;
 
             }
@@ -375,6 +413,7 @@ public class Cbir extends AppCompatActivity {
 
                     visualizzaRisulatato(immaginiDaMostrare);
 
+
                 }
 
 
@@ -423,7 +462,7 @@ public class Cbir extends AppCompatActivity {
 
             //Creo l'arrayListi di immagini da mostrare con i 5 migliori risultati
 
-            for(int i = 0; i < 5; i++){
+            for(int i = 0; i < immaginiAnalizzate; i++){
                 //Sto popolando l'array da passare all'adpter con le immagini da mostrare come risultato
                 immaginiDaMostrare_arrayList.add(immaginiDaMostrare.get(i));
             }
