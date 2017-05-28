@@ -20,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,10 +48,21 @@ public class Cbir extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 200;
 
-    private static final int immaginiAnalizzate=5;
+    private static final int immaginiAnalizzate = 5;
+
+
+    //Quale descrittore viene utilizzato?
+    private enum TipoDiDescrittore {
+        ISTOGRAMMA, LBP, ENTRAMBI
+
+    }
+
+    ;
+
+    TipoDiDescrittore tipo = TipoDiDescrittore.ISTOGRAMMA;
 
     // Numero di immagini escluse dal calcolo delle features
-    public int immagini_Escluse=0;
+    public int immagini_Escluse = 0;
 
     //Mi serve un vettore di stringhe per il salvataggio degli URI delle immagini, non so a priori quanto sarà grande dunque uso un arrayList
     private ArrayList<String> listaPercorsiImmagini;
@@ -71,12 +83,12 @@ public class Cbir extends AppCompatActivity {
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
-            switch (status){
-                case BaseLoaderCallback.SUCCESS:{
+            switch (status) {
+                case BaseLoaderCallback.SUCCESS: {
                     Log.i(TAG, "OpenCv manager connected");
                     break;
                 }
-                default:{
+                default: {
                     super.onManagerConnected(status);
                     break;
                 }
@@ -87,9 +99,6 @@ public class Cbir extends AppCompatActivity {
     };
 
 
-
-
-
     //COMPONENTI GRAFICHE
 
     //Bottone per l'inserimento di un immagine
@@ -98,36 +107,75 @@ public class Cbir extends AppCompatActivity {
     private TextView textView;
     private ImageView sadSmileImage;
 
+    //Seekbar per scelta peso dei descrittori
+    private SeekBar weightDescriptorSeekbar;
 
+    //TextView che danno una stima in percentuale del peso dei descrittori
+    private TextView weightProgressIstogrammaText;
+    private TextView weightProgressLBPText;
 
+    private RadioButton descrittoreEntrambi;
 
-
+    private int weightIstogramma;
+    private int weightLBP;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cbir);
 
+        weightDescriptorSeekbar=(SeekBar) findViewById(R.id.pesoDescrittori);
+        weightProgressIstogrammaText= (TextView) findViewById(R.id.progressIstogramma);
+        weightProgressLBPText=(TextView) findViewById(R.id.progressLBP);
+
+        descrittoreEntrambi=(RadioButton) findViewById(R.id.descrittoreEntrambi);
+
+        weightDescriptorSeekbar.setEnabled(false);
+
+
+        weightDescriptorSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                weightIstogramma=progress;
+                weightLBP=100-progress;
+
+                weightProgressIstogrammaText.setText(weightIstogramma + "%");
+                weightProgressLBPText.setText(weightLBP + "%");
+
+
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
 
         //Recupero un sharedPreference per indicizzare la galleria
         //Dato che mi serve un solo file uso getPreferences
-        preference = getSharedPreferences(FEATURES_FILE_NAME , MODE_PRIVATE);
+        preference = getSharedPreferences(FEATURES_FILE_NAME, MODE_PRIVATE);
 
         //Richiamo un editor
         editor = preference.edit();
 
 
-        if(OpenCVLoader.initDebug()){
+        if (OpenCVLoader.initDebug()) {
             Log.i(TAG, "OpenCv connected");
-        }else{
+        } else {
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
             Log.i(TAG, "Connecting to the openCv library asynchronously");
         }
 
-        if(checkPermission()){
+        if (checkPermission()) {
 
-            Log.i(TAG,"Permessi già verificati");
+            Log.i(TAG, "Permessi già verificati");
 
             //Devo recuperare tutti gli Uri delle immagini presenti in galleria
             listaPercorsiImmagini = new ArrayList<>();
@@ -151,17 +199,15 @@ public class Cbir extends AppCompatActivity {
                     startActivityForResult(intent, SELECT_PICTURE);
 
 
-
                 }
             });
 
-        } else{
+        } else {
 
             requestPermission();
 
 
         }
-
 
 
     }
@@ -170,24 +216,37 @@ public class Cbir extends AppCompatActivity {
         // Is the button now checked?
         boolean checked = ((RadioButton) view).isChecked();
 
-        
 
         // Check which radio button was clicked
-        switch(view.getId()) {
+        switch (view.getId()) {
             case R.id.descrittoreIstogramma:
-                if (checked){
-                    Toast.makeText(getApplicationContext(),"Hai scelto Istogramma", Toast.LENGTH_SHORT).show();
+                if (checked) {
+                    Toast.makeText(getApplicationContext(), "Hai scelto Istogramma", Toast.LENGTH_SHORT).show();
+                    tipo = TipoDiDescrittore.ISTOGRAMMA;
+
+                    //Reset della seekbar
+                    weightDescriptorSeekbar.setEnabled(false);
+                    weightDescriptorSeekbar.setProgress(50);
 
                 }
-                    break;
+                break;
             case R.id.descrittoreLbp:
-                if (checked){
-                    Toast.makeText(getApplicationContext(),"Hai scelto LBP", Toast.LENGTH_SHORT).show();
+                if (checked) {
+                    Toast.makeText(getApplicationContext(), "Hai scelto LBP", Toast.LENGTH_SHORT).show();
+                    tipo = TipoDiDescrittore.LBP;
+
+                    //Reset della seekbar
+                    weightDescriptorSeekbar.setEnabled(false);
+                    weightDescriptorSeekbar.setProgress(50);
                 }
-                    break;
+                break;
             case R.id.descrittoreEntrambi:
-                if(checked){
-                Toast.makeText(getApplicationContext(),"Hai scelto entrambi i descrittori", Toast.LENGTH_SHORT).show();
+                if (checked) {
+                    Toast.makeText(getApplicationContext(), "Hai scelto entrambi i descrittori", Toast.LENGTH_SHORT).show();
+                    tipo = TipoDiDescrittore.ENTRAMBI;
+
+                    //Abilito la seekbar
+                    weightDescriptorSeekbar.setEnabled(true);
                 }
                 break;
 
@@ -196,7 +255,7 @@ public class Cbir extends AppCompatActivity {
 
     //Metodo per verifica dei permessi
     private boolean checkPermission() {
-        int result = ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE);
+        int result = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
 
         return result == PackageManager.PERMISSION_GRANTED;
     }
@@ -217,7 +276,7 @@ public class Cbir extends AppCompatActivity {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    Log.i(TAG,"Permesso accettato");
+                    Log.i(TAG, "Permesso accettato");
 
                     //Devo recuperare tutti gli Uri delle immagini presenti in galleria
                     listaPercorsiImmagini = new ArrayList<>();
@@ -232,7 +291,7 @@ public class Cbir extends AppCompatActivity {
 
                 } else {
 
-                 Log.i(TAG,"Richiesta rifiutata");
+                    Log.i(TAG, "Richiesta rifiutata");
                 }
                 return;
             }
@@ -243,13 +302,11 @@ public class Cbir extends AppCompatActivity {
     }
 
 
-
-
     @Override
     protected void onResume() {
-        if(OpenCVLoader.initDebug()){
+        if (OpenCVLoader.initDebug()) {
             Log.i(TAG, "OpenCv connected");
-        }else{
+        } else {
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
             Log.i(TAG, "Connecting to the openCv library asynchronously");
         }
@@ -262,7 +319,7 @@ public class Cbir extends AppCompatActivity {
     //Nel caso delle foto parliamo di MediaStore.Image
     //Noi comunichiamo direttamente con un contentResolver che si occupa di connetterci al conentProvider
 
-    private ArrayList<String> recuperaPercorsoImmagini(){
+    private ArrayList<String> recuperaPercorsoImmagini() {
         //URI per la tabella dove sono situati tutti i percorsi delle immagini
         Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
 
@@ -274,9 +331,9 @@ public class Cbir extends AppCompatActivity {
         Cursor cursor = getContentResolver().query(uri, projection, null, null, null, null);
 
         //A questo punto ho ottenuto ciò che mi serviva, faccio un controllo
-        if(!cursor.moveToFirst()) {
+        if (!cursor.moveToFirst()) {
             Log.i(TAG, "Le immagini non sono state caricate");
-            return  null;
+            return null;
         }
 
         Log.i(TAG, "Le immagini sono state caricate");
@@ -285,18 +342,18 @@ public class Cbir extends AppCompatActivity {
         int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
 
 
-        do{
+        do {
             //Ora posso recuperare le immagini
             listaPercorsiImmagini.add(cursor.getString(columnIndex));
 
-        }while (cursor.moveToNext());
+        } while (cursor.moveToNext());
 
         return listaPercorsiImmagini;
 
     }
 
     //Il metodo seguente compie tutte le operazioni per l'indicizzazione
-    private void indicizza(ArrayList<String> percorsoImmagini){
+    private void indicizza(ArrayList<String> percorsoImmagini) {
 
         String percorsoImmagine;
         String[] features;
@@ -313,32 +370,50 @@ public class Cbir extends AppCompatActivity {
         */
 
 
-        for(int i = 0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
 
             percorsoImmagine = percorsoImmagini.get(i);
 
             // L'immagine che devo indicizzare deve avere almeno 3 o 4 canali e depth == CV_8U o depth == CV_32F
-            if (Imgcodecs.imread(percorsoImmagine).channels() == 3){
+            if (Imgcodecs.imread(percorsoImmagine).channels() == 3) {
+
 
                 immagineDaIndicizzare = caricaImmagine(percorsoImmagine);
-            features = new String[TOTAL_DIMENSION];
+                features = new String[TOTAL_DIMENSION];
 
-            //Arrayset da salvare nel shared preference
-            listaFeatures = new ArraySet<>();
+                //Arrayset da salvare nel shared preference
+                listaFeatures = new ArraySet<>();
 
 
-            imageDescriptor = new ImageDescriptor();
-            features = imageDescriptor.calculateHist(immagineDaIndicizzare);
+                //L'utente sceglie solo l'istogramma come descrittore
+                if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
+                    Log.i(TAG,"Calcolo features con istogramma di colore");
+                    imageDescriptor = new ImageDescriptor();
+                    features = imageDescriptor.calculateHist(immagineDaIndicizzare);
+                }
 
-            for (int j = 0; j < features.length; j++) {
+                //L'utente sceglie solo il local binary pattern come descrittore
+                if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
+                    Log.i(TAG,"Calcolo features con local binary pattern");
+                    imageDescriptor = new ImageDescriptor();
+                    features = imageDescriptor.calculateHist(immagineDaIndicizzare);
+                }
 
-                listaFeatures.add(features[j]);
-            }
+                //L'utente sceglie entrambi i descrittori
+                if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
+                    Log.i(TAG,"Calcolo features con entrambi i descrittori");
+                    imageDescriptor = new ImageDescriptor();
+                    features = imageDescriptor.calculateHist(immagineDaIndicizzare);
+                }
 
-            //Sto salvando il vettore di features nel shared preference
-            editor.putStringSet(percorsoImmagine, listaFeatures);
-        }
-        else {
+                for (int j = 0; j < features.length; j++) {
+
+                    listaFeatures.add(features[j]);
+                }
+
+                //Sto salvando il vettore di features nel shared preference
+                editor.putStringSet(percorsoImmagine, listaFeatures);
+            } else {
                 //Immagini che non è possibile indicizzare
                 immagini_Escluse++;
 
@@ -347,14 +422,13 @@ public class Cbir extends AppCompatActivity {
         }
 
 
-
         //Completo il salvataggio e l'indicizzazione
         editor.commit();
 
     }
 
     //Il seguente metodo recupera un'immagine e la salva in un oggetto di tipo Mat
-    private Mat caricaImmagine(String uri){
+    private Mat caricaImmagine(String uri) {
         //Carico  l'immagine
         Mat immagineOriginale = Imgcodecs.imread(uri);
         Mat immagineHSV = new Mat();
@@ -368,9 +442,9 @@ public class Cbir extends AppCompatActivity {
 
 
     //Il seguente metodo verifica se nel sharedPreference son già presenti dei dati salvati
-    private boolean verificaSharedPreference(SharedPreferences preference){
+    private boolean verificaSharedPreference(SharedPreferences preference) {
         //Per il momento mi limito a verificare che ci siano dati salvati, non mi interessa se ci sono state modifiche alla galleria
-        if(preference.contains("sentinel")){
+        if (preference.contains("sentinel")) {
             return true;
         }
         return false;
@@ -382,18 +456,18 @@ public class Cbir extends AppCompatActivity {
         //ArrayList delle immagini da mostrare
         ArrayList<ImmagineDaMostrare> immaginiDaMostrare;
 
-        if(resultCode == RESULT_OK){
-            if(requestCode == SELECT_PICTURE){
+        if (resultCode == RESULT_OK) {
+            if (requestCode == SELECT_PICTURE) {
                 //Recupero l'uri dell'immagine selezionata
                 Uri selectedImageUri = data.getData();
                 String imagePath;
 
                 //Inizializzo la stringa per la proiezione
-                String[] projection = new String[] {MediaStore.Images.Media.DATA};
+                String[] projection = new String[]{MediaStore.Images.Media.DATA};
 
                 Cursor cursor = getContentResolver().query(selectedImageUri, projection, null, null, null, null);
 
-                if(cursor != null){
+                if (cursor != null) {
                     //Indice della colonna dove sono salvati i percorsi delle immagini
                     int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
 
@@ -423,9 +497,7 @@ public class Cbir extends AppCompatActivity {
 
     }
 
-    public void visualizzaRisulatato(ArrayList<ImmagineDaMostrare> immaginiDaMostrare){
-
-
+    public void visualizzaRisulatato(ArrayList<ImmagineDaMostrare> immaginiDaMostrare) {
 
 
         //Adapter per popolare la listView
@@ -446,12 +518,11 @@ public class Cbir extends AppCompatActivity {
         textView.setVisibility(View.VISIBLE);
 
 
-
-        if(immaginiDaMostrare.isEmpty()){
+        if (immaginiDaMostrare.isEmpty()) {
             //La ricerca di immagini simili ha avuto esito negativo
             textView.setText("Non ho trovato nessuna immagine simile!");
             sadSmileImage.setVisibility(View.VISIBLE);
-        }else{
+        } else {
 
 
             //Ho trovato delle immagini simili, le mostro all'utente
@@ -459,10 +530,9 @@ public class Cbir extends AppCompatActivity {
             mostraImmagini.setVisibility(View.VISIBLE);
 
 
-
             //Creo l'arrayListi di immagini da mostrare con i 5 migliori risultati
 
-            for(int i = 0; i < immaginiAnalizzate; i++){
+            for (int i = 0; i < immaginiAnalizzate; i++) {
                 //Sto popolando l'array da passare all'adpter con le immagini da mostrare come risultato
                 immaginiDaMostrare_arrayList.add(immaginiDaMostrare.get(i));
             }
@@ -482,8 +552,6 @@ public class Cbir extends AppCompatActivity {
         }
 
     }
-
-
 
 
 }

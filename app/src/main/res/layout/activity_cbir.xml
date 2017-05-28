@@ -56,6 +56,16 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
 
     </RadioGroup>
 
+    <SeekBar
+        android:id="@+id/pesoDescrittori"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/groupDescrittoreIstogramma"
+        android:layout_centerHorizontal="true"
+        android:max="100"
+        android:progress="50"
+        />
+
     <ImageView
     android:id="@+id/sad_smile_image_view"
     android:src="@mipmap/ic_sentiment_dissatisfied_black_48dp"
@@ -94,8 +104,43 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
         android:layout_height="wrap_content"
         android:text="Seleziona un'immagine!"
         android:textStyle="bold"
-        android:layout_marginTop="18dp"
+        android:layout_marginTop="22dp"
+        android:layout_below="@+id/progressIstogramma"
+        android:layout_alignStart="@+id/pesoIstogramma" />
+
+    <TextView
+        android:id="@+id/pesoIstogramma"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Istogramma"
         android:layout_below="@+id/groupDescrittoreIstogramma"
-        android:layout_alignParentStart="true" />
+        android:layout_toStartOf="@+id/pesoDescrittori" />
+
+    <TextView
+        android:id="@+id/pesoLBP"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/insert_query_image_button"
+        android:layout_below="@+id/groupDescrittoreIstogramma"
+        android:text="LBP" />
+
+    <TextView
+        android:id="@+id/progressIstogramma"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20dp"
+        android:text="50%"
+        android:layout_below="@+id/pesoDescrittori"
+        android:layout_toStartOf="@+id/pesoDescrittori"
+        android:layout_marginEnd="16dp" />
+
+    <TextView
+        android:id="@+id/progressLBP"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20dp"
+        android:text="50%"
+        android:layout_below="@+id/pesoLBP"
+        android:layout_alignStart="@+id/pesoLBP" />
 
 </RelativeLayout>
