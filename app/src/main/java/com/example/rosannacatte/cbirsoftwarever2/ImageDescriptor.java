@@ -72,7 +72,7 @@ public class ImageDescriptor {
 
 
 
-    //METODI
+    //METODI ISTOGRAMMA DI COLORE
     //Prende in ingresso un immagine in formato HSV e calcola l'istogramma
     public String[] calculateHist(Mat immagine){
 
@@ -123,6 +123,7 @@ public class ImageDescriptor {
             Imgproc.calcHist(immagini, mChannels[c], mask3, hist3, mNumberBins, mRange[c]);
             Imgproc.calcHist(immagini, mChannels[c], mask4, hist4, mNumberBins, mRange[c]);
             Imgproc.calcHist(immagini, mChannels[c], mask5, hist5, mNumberBins, mRange[c]);
+
 
             hist1.get(0, 0, data1);
             hist2.get(0, 0, data2);
@@ -254,6 +255,20 @@ public class ImageDescriptor {
     }
 
 
+    // Questo metodo si occupa di realizzare la media pesata tra gli elementi dei due vettori di features
+    private float[] getMediaPesata(float[] features1, float[] features2, int peso){
+        float [] featuresRes = new float[features1.length];
+        for(int j=0;j<features1.length;j++){
+            featuresRes[j] = (features1[j] + features2[j]) * peso;
+
+        }
+
+        return featuresRes;
+
+
+    }
+
+
     //SETTER GETTER
     public void setmNumberBins(MatOfInt mNumberBins){
         this.mNumberBins = mNumberBins;
@@ -278,6 +293,9 @@ public class ImageDescriptor {
     public MatOfFloat[] getmRange(){
         return this.mRange;
     }
+
+
+    
 
 
 }

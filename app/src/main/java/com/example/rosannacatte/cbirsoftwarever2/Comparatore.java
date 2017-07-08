@@ -1,8 +1,10 @@
 package com.example.rosannacatte.cbirsoftwarever2;
 
 import android.content.SharedPreferences;
+import android.util.Log;
 
 import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -20,7 +22,7 @@ public class Comparatore {
 
     private static final int TOTAL_DIMENSION = 375;
 
-    private static final int immaginiAnalizzate=5;
+    private static final int immaginiAnalizzate=1;
 
 
 
@@ -41,7 +43,8 @@ public class Comparatore {
 
     //COSTRUTTORE
     public Comparatore(ArrayList<String> listaPercorsoImmagini, SharedPreferences preferences){
-        this.listaPercorsoImmagini = listaPercorsoImmagini;
+        this.listaPercorsoImmagini = new ArrayList<>();
+        this.listaPercorsoImmagini=listaPercorsoImmagini;
         this.preferences = preferences;
     }
 
@@ -49,7 +52,7 @@ public class Comparatore {
     //METODI
 
     //Metodo principale che calcola il vettore di indici di somiglianza tra le immagini
-    public ArrayList<ImmagineDaMostrare> calcolaDistanza(Mat queryImage, int immagini_escluse){
+    public ArrayList<ImmagineDaMostrare> calcolaDistanza(Mat queryImage){
 
         //Recupero i valori delle features dell'immagine query
         int[] valoriFeaturesQuery = recuperaValoreFeatures(imageDescriptor.calculateHist(queryImage));
@@ -58,36 +61,41 @@ public class Comparatore {
         ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
 
         //Adesso devo fare il confronto tra le features dell'immagine di query e le features delle immagini contenute nel dispositivo
-        for(int i = 0; i < immaginiAnalizzate; i++){
+        for(int i = 0; i < listaPercorsoImmagini.size(); i++){
 
             String currentImage = listaPercorsoImmagini.get(i);
 
-            //Recupero le features dallo shared preference sotto forma di set
-            Set<String> setFeatures = preferences.getStringSet(currentImage, null);
+            if(Imgcodecs.imread(currentImage).channels() == 3) {
 
-            //Converto il set di stringhe in un array
-            String[] arrayFeatures = setToArray(setFeatures);
-
-            //Ottengo i valori delle features salvate nello shared preference
-            int[] valoriFeaturesSavedImage = recuperaValoreFeatures(arrayFeatures);
-
-            //Calcolo la distanza tra i due vettori
-            int currentDistanza = distanza(valoriFeaturesQuery, valoriFeaturesSavedImage);
+                //Recupero le features dallo shared preference sotto forma di set
+                Set<String> setFeatures = preferences.getStringSet(currentImage, null);
 
 
-            if(currentDistanza  == 0 ){
-                //In questo caso l'immagine è identica, non la mostro di nuovo
+                //Converto il set di stringhe in un array
+                String[] arrayFeatures = setToArray(setFeatures);
 
-            }else{
-                ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(currentImage, currentDistanza);
-                listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
-            }
+                //Ottengo i valori delle features salvate nello shared preference
+                int[] valoriFeaturesSavedImage = recuperaValoreFeatures(arrayFeatures);
+
+                //Calcolo la distanza tra i due vettori
+                int currentDistanza = distanza(valoriFeaturesQuery, valoriFeaturesSavedImage);
+
+
+                if (currentDistanza == 0) {
+                    //In questo caso l'immagine è identica, non la mostro di nuovo
+
+                } else{
+
+                    ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(currentImage, currentDistanza);
+                    listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
+                }
 
 
             /*
             ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(currentImage, currentDistanza);
             listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
             */
+            }
 
         }
 

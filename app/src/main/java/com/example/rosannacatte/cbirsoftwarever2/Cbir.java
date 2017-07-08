@@ -48,7 +48,7 @@ public class Cbir extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 200;
 
-    private static final int immaginiAnalizzate = 5;
+    private static final int immaginiAnalizzate = 1;
 
 
     //Quale descrittore viene utilizzato?
@@ -114,7 +114,7 @@ public class Cbir extends AppCompatActivity {
     private TextView weightProgressIstogrammaText;
     private TextView weightProgressLBPText;
 
-    private RadioButton descrittoreEntrambi;
+    private RadioButton descriptorBothButton;
 
     private int weightIstogramma;
     private int weightLBP;
@@ -128,7 +128,7 @@ public class Cbir extends AppCompatActivity {
         weightProgressIstogrammaText= (TextView) findViewById(R.id.progressIstogramma);
         weightProgressLBPText=(TextView) findViewById(R.id.progressLBP);
 
-        descrittoreEntrambi=(RadioButton) findViewById(R.id.descrittoreEntrambi);
+        descriptorBothButton=(RadioButton) findViewById(R.id.descrittoreEntrambi);
 
         weightDescriptorSeekbar.setEnabled(false);
 
@@ -177,21 +177,23 @@ public class Cbir extends AppCompatActivity {
 
             Log.i(TAG, "Permessi già verificati");
 
-            //Devo recuperare tutti gli Uri delle immagini presenti in galleria
-            listaPercorsiImmagini = new ArrayList<>();
-            listaPercorsiImmagini = recuperaPercorsoImmagini();
 
-
-            //VA FATTO IL CONTROLLO SU PRECEDENTI SHAREDPREFERENCE
-
-            //Indicizzo
-            indicizza(listaPercorsiImmagini);
 
             //Adesso devo ricevere in input un immagine dell'utente e confrontarla con le features che ho già ricavato
             insertQueryImageFAB = (FloatingActionButton) findViewById(R.id.insert_query_image_button);
             insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+
+                    //Devo recuperare tutti gli Uri delle immagini presenti in galleria
+                    listaPercorsiImmagini = new ArrayList<>();
+                    listaPercorsiImmagini = recuperaPercorsoImmagini();
+
+                    //VA FATTO IL CONTROLLO SU PRECEDENTI SHAREDPREFERENCE
+
+                    //Indicizzo
+                    indicizza(listaPercorsiImmagini);
+
                     //Creo un intent per aprire la galleria e selezionare un immagine da anlizzare
                     Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
@@ -213,11 +215,11 @@ public class Cbir extends AppCompatActivity {
     }
 
     public void onRadioButtonClicked(View view) {
-        // Is the button now checked?
+        // Il radio button è stato premuto?
         boolean checked = ((RadioButton) view).isChecked();
 
 
-        // Check which radio button was clicked
+        // Controlla quale radio button è stato premuto
         switch (view.getId()) {
             case R.id.descrittoreIstogramma:
                 if (checked) {
@@ -279,14 +281,14 @@ public class Cbir extends AppCompatActivity {
                     Log.i(TAG, "Permesso accettato");
 
                     //Devo recuperare tutti gli Uri delle immagini presenti in galleria
-                    listaPercorsiImmagini = new ArrayList<>();
-                    listaPercorsiImmagini = recuperaPercorsoImmagini();
+                    //listaPercorsiImmagini = new ArrayList<>();
+                    //listaPercorsiImmagini = recuperaPercorsoImmagini();
 
 
                     //VA FATTO IL CONTROLLO SU PRECEDENTI SHAREDPREFERENCE
 
                     //Indicizzo
-                    indicizza(listaPercorsiImmagini);
+                    //indicizza(listaPercorsiImmagini);
 
 
                 } else {
@@ -344,9 +346,15 @@ public class Cbir extends AppCompatActivity {
 
         do {
             //Ora posso recuperare le immagini
+            //Recupero solo quelle immagini all'interno della cartella "Foto"
+            if(cursor.getString(columnIndex).contains("/storage/emulated/0/DCIM/Camera/")){
             listaPercorsiImmagini.add(cursor.getString(columnIndex));
 
-        } while (cursor.moveToNext());
+            }
+
+
+        } while(cursor.moveToNext());
+
 
         return listaPercorsiImmagini;
 
@@ -364,13 +372,13 @@ public class Cbir extends AppCompatActivity {
         editor.clear();
 
         //Verifico che sia già stata inizializzato un shared preference, nel caso vuol dire che ho già effettuato l'indicizzazione
-        /*if(verificaSharedPreference(preference)){
+        if(verificaSharedPreference(preference)){
             return;
         }
-        */
 
 
-        for (int i = 0; i < 5; i++) {
+
+        for (int i = 0; i < percorsoImmagini.size(); i++) {
 
             percorsoImmagine = percorsoImmagini.get(i);
 
@@ -393,17 +401,18 @@ public class Cbir extends AppCompatActivity {
                 }
 
                 //L'utente sceglie solo il local binary pattern come descrittore
-                if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
+                else if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
                     Log.i(TAG,"Calcolo features con local binary pattern");
                     imageDescriptor = new ImageDescriptor();
                     features = imageDescriptor.calculateHist(immagineDaIndicizzare);
                 }
 
                 //L'utente sceglie entrambi i descrittori
-                if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
+                else if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
                     Log.i(TAG,"Calcolo features con entrambi i descrittori");
                     imageDescriptor = new ImageDescriptor();
                     features = imageDescriptor.calculateHist(immagineDaIndicizzare);
+
                 }
 
                 for (int j = 0; j < features.length; j++) {
@@ -480,10 +489,12 @@ public class Cbir extends AppCompatActivity {
                     Mat queryImage = caricaImmagine(imagePath);
 
                     //Inizializzo il comparatore
+                    Log.i(TAG,"Dimensione: " + preference.contains(listaPercorsiImmagini.get(0)));
                     comparatore = new Comparatore(listaPercorsiImmagini, preference);
 
+
                     //Ora passo quell'immagine a un metodo che esegua il confronto
-                    immaginiDaMostrare = comparatore.calcolaDistanza(queryImage, immagini_Escluse);
+                    immaginiDaMostrare = comparatore.calcolaDistanza(queryImage);
 
                     visualizzaRisulatato(immaginiDaMostrare);
 
@@ -532,7 +543,7 @@ public class Cbir extends AppCompatActivity {
 
             //Creo l'arrayListi di immagini da mostrare con i 5 migliori risultati
 
-            for (int i = 0; i < immaginiAnalizzate; i++) {
+            for (int i = 0; i < 5; i++) {
                 //Sto popolando l'array da passare all'adpter con le immagini da mostrare come risultato
                 immaginiDaMostrare_arrayList.add(immaginiDaMostrare.get(i));
             }
