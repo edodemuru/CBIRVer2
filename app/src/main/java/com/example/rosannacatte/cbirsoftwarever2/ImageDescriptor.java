@@ -10,14 +10,18 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
+import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.features2d.DescriptorExtractor;
+import org.opencv.features2d.FeatureDetector;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -60,8 +64,6 @@ public class ImageDescriptor {
     };
 
 
-
-
     //COSTRUTTORE
     /*
     public ImageDescriptor(MatOfInt mNumberBins, MatOfInt mChannels, MatOfFloat mRange){
@@ -71,10 +73,9 @@ public class ImageDescriptor {
     }*/
 
 
-
     //METODI ISTOGRAMMA DI COLORE
     //Prende in ingresso un immagine in formato HSV e calcola l'istogramma
-    public String[] calculateHist(Mat immagine){
+    public String[] calculateHist(Mat immagine) {
 
         Mat mask1 = new Mat(600, 800, CvType.CV_8UC1);
         Mat mask2 = new Mat(600, 800, CvType.CV_8UC1);
@@ -117,7 +118,7 @@ public class ImageDescriptor {
         float[] dataHSHVSV = new float[TOTAL_DIMENSION];
         float[][] data = new float[VECTOR_DIMENSION][3];
 
-        for(int c = 0; c < 3; c++){
+        for (int c = 0; c < 3; c++) {
             Imgproc.calcHist(immagini, mChannels[c], mask1, hist1, mNumberBins, mRange[c]);
             Imgproc.calcHist(immagini, mChannels[c], mask2, hist2, mNumberBins, mRange[c]);
             Imgproc.calcHist(immagini, mChannels[c], mask3, hist3, mNumberBins, mRange[c]);
@@ -131,7 +132,7 @@ public class ImageDescriptor {
             hist4.get(0, 0, data4);
             hist5.get(0, 0, data5);
 
-            for(int j = 0; j < DIMENSION - 1; j++ ){
+            for (int j = 0; j < DIMENSION - 1; j++) {
                 data[j][c] = data1[j];
                 data[j + DIMENSION][c] = data2[j];
                 data[j + 2 * DIMENSION][c] = data3[j];
@@ -142,7 +143,7 @@ public class ImageDescriptor {
 
         }
 
-        for(int i = 0; i < VECTOR_DIMENSION - 1; i++){
+        for (int i = 0; i < VECTOR_DIMENSION - 1; i++) {
             dataHSHVSV[i] = data[i][0];
             dataHSHVSV[i + VECTOR_DIMENSION] = data[i][1];
             dataHSHVSV[i + 2 * VECTOR_DIMENSION] = data[i][2];
@@ -159,7 +160,7 @@ public class ImageDescriptor {
     }
 
     //Imposta la maschera le maschere da usare per il calcolo dell'istogramma
-    private void impostaMask(Mat mask1, Mat mask2, Mat mask3, Mat mask4, Mat mask5){
+    private void impostaMask(Mat mask1, Mat mask2, Mat mask3, Mat mask4, Mat mask5) {
 
         //Azzero tutti i pixel
         mask1.setTo(new Scalar(0.0));
@@ -185,7 +186,6 @@ public class ImageDescriptor {
 
         Point p9 = new Point(400, 300);
         Point p10 = new Point(800, 600);
-
 
 
         //Mask 1
@@ -216,35 +216,33 @@ public class ImageDescriptor {
         Imgproc.rectangle(mask5, p9, p10, new Scalar(0.0));
 
 
-
-
     }
 
     //Converte i dati contenuti nell'istogramma in stringhe salvabili nel shared preference
-    private String[] convertToString(float[] data){
+    private String[] convertToString(float[] data) {
 
         String[] stringVector = new String[TOTAL_DIMENSION];
 
         //Ciclo tutto il vettore di float e converto in stringhe
-        for(int i = 0; i < stringVector.length; i++){
+        for (int i = 0; i < stringVector.length; i++) {
             //Sto usando questa formattazione per permettermi di salvare i valore in un shared Preference successivamente
-            stringVector[i] = String.format(i +"_%.0f", data[i]);
+            stringVector[i] = String.format(i + "_%.0f", data[i]);
         }
 
         return stringVector;
     }
 
     //Il seguente metodo serve per scalare l'immagine passata come argomento
-    private Mat scalaImmagine(Mat immagine){
+    private Mat scalaImmagine(Mat immagine) {
         //VOGLIO SCALARE UN IMMAGINE ALLA DIMENSIONE 800*600
         //Verifico se la dimensione è rispettata
         int height = immagine.height();
         int width = immagine.width();
 
-        if(height != 600 || width != 800){
+        if (height != 600 || width != 800) {
             //Trovo il rapporto tra la misura desiderata e quelle attuale
-            double heigthScaleSize = (double) 600/height;
-            double widthScaleSize = (double) 800/width;
+            double heigthScaleSize = (double) 600 / height;
+            double widthScaleSize = (double) 800 / width;
 
             Imgproc.resize(immagine, immagine, new Size(), widthScaleSize, heigthScaleSize, Imgproc.INTER_AREA);
         }
@@ -255,26 +253,14 @@ public class ImageDescriptor {
     }
 
 
-    // Questo metodo si occupa di realizzare la media pesata tra gli elementi dei due vettori di features
-    private float[] getMediaPesata(float[] features1, float[] features2, int peso){
-        float [] featuresRes = new float[features1.length];
-        for(int j=0;j<features1.length;j++){
-            featuresRes[j] = (features1[j] + features2[j]) * peso;
-
-        }
-
-        return featuresRes;
-
-
-    }
 
 
     //SETTER GETTER
-    public void setmNumberBins(MatOfInt mNumberBins){
+    public void setmNumberBins(MatOfInt mNumberBins) {
         this.mNumberBins = mNumberBins;
     }
 
-    public void setmChannels(MatOfInt[] mChannels){
+    public void setmChannels(MatOfInt[] mChannels) {
         this.mChannels = mChannels;
     }
 
@@ -282,20 +268,80 @@ public class ImageDescriptor {
         this.mRange = mRange;
     }
 
-    public MatOfInt getmNumberBins(){
+    public MatOfInt getmNumberBins() {
         return this.mNumberBins;
     }
 
-    public MatOfInt[] getmChannels(){
+    public MatOfInt[] getmChannels() {
         return this.mChannels;
     }
 
-    public MatOfFloat[] getmRange(){
+    public MatOfFloat[] getmRange() {
         return this.mRange;
     }
 
 
-    
+    // METODI DESCRITTORE ORB
+
+    public ImmagineOrb calculateOrb(Mat immagine) {
+        //Immagine 600x800
+        scalaImmagine(immagine);
+
+        // Creazione Feature Detector
+        FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
+
+        //Creazione estrattore di feature
+        DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+
+        //Conversione immagine in scala di grigi
+        Mat greyImage = new Mat();
+        greyImage = immagine;
+        Imgproc.cvtColor(immagine, greyImage, Imgproc.COLOR_RGB2GRAY);
+
+        //Oggetto Mat che conterrà le features dell'immagine
+        Mat descriptors = new Mat();
+        // Oggetto Mat che conterrà i keypoint dell'immagine
+        MatOfKeyPoint keypoints = new MatOfKeyPoint();
+
+        //Individuazione punti chiave dell'immagine
+        detector.detect(greyImage, keypoints);
+
+        //Estrazione feature dai punti chiave
+        descriptor.compute(greyImage, keypoints, descriptors);
+
+        // Le informazioni sull'immagine vengono salvate in un oggetto Immagine Orb
+        ImmagineOrb immagineAnalizzata = new ImmagineOrb(keypoints,descriptors,null);
+
+        //In data estraggo le features trovate
+        //byte[] data = new byte[(int) descriptors.total()];
+        //descriptors.get(0, 0, data);
+
+        //String[] features;
+        //features = convertToString(data);
+
+        //int [] dataKeypoint = keypoints.toArray().;
+
+        return immagineAnalizzata;
+
+    }
+
+    private String[] convertToString(byte[] data) {
+        String[] features = new String[data.length];
+
+        for (int i = 0; i < features.length; i++) {
+            // La memorizzazione di ogni singolo byte nel vettore di stringhe viene effettuta
+            // inserendo il byte in un vettore di stringhe, convertendolo in una stringa, con una codifica
+            // ISO_8859_1, codifica 1 a 1 tra i byte e la stringa, per avere poi la possibilità di riconversione
+            String feature = new String(new byte[]{data[i]}, StandardCharsets.ISO_8859_1);
+
+            //Aggiungo alla stringa un indice in modo tale da poterla poi distinguere
+            features[i] = Integer.toString(i) + "_" + feature;
 
 
+        }
+
+        return features;
+
+
+    }
 }

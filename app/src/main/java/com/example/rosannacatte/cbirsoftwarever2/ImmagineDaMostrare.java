@@ -19,12 +19,12 @@ public class ImmagineDaMostrare {
     private Mat immagineMAT;
     private Bitmap immagineBM;
     private String nomeImmagine;
-    private int distanza;
+    private int distanzaIst;
+    private float distanzaOrb;
 
 
     //COSTRUTTORE
-    public ImmagineDaMostrare(String percorsoImmagine, int distanza){
-        this.distanza = distanza;
+    public ImmagineDaMostrare(String percorsoImmagine){
         this.percorsoImmagine = percorsoImmagine;
         this.immagineMAT = Imgcodecs.imread(percorsoImmagine);
         ricavaBitMap();
@@ -85,8 +85,19 @@ public class ImmagineDaMostrare {
         return this.nomeImmagine;
     }
 
-    public int getDistanza(){
-        return  this.distanza;
+    public int getDistanzaIst() {
+        return distanzaIst;
     }
 
+    public void setDistanzaIst(int distanzaIst) {
+        this.distanzaIst = distanzaIst;
+    }
+
+    public float getDistanzaOrb() {
+        return distanzaOrb;
+    }
+
+    public void setDistanzaOrb(float distanzaOrb) {
+        this.distanzaOrb = distanzaOrb;
+    }
 }

@@ -40,7 +40,9 @@ public class Cbir extends AppCompatActivity {
     //Costante usata per evidenziare i messaggi nel log
     private static final String TAG = "CBIR";
 
-    private static final int TOTAL_DIMENSION = 375;
+    private static final int TOTAL_DIMENSION_WITH_HIST = 375;
+
+    private static final int TOTAL_DIMENSION_WITH_ORB = 16000;
 
     private static final String FEATURES_FILE_NAME = "featuresFile";
 
@@ -48,16 +50,14 @@ public class Cbir extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 200;
 
-    private static final int immaginiAnalizzate = 1;
-
 
     //Quale descrittore viene utilizzato?
     private enum TipoDiDescrittore {
-        ISTOGRAMMA, LBP, ENTRAMBI
+        ISTOGRAMMA, ORB, BOTH
 
     }
 
-    ;
+
 
     TipoDiDescrittore tipo = TipoDiDescrittore.ISTOGRAMMA;
 
@@ -78,6 +78,9 @@ public class Cbir extends AppCompatActivity {
 
     //Creo un oggeto Comparatore per calcolare la distanza tra istogrammi
     private Comparatore comparatore;
+
+    // ArrayList contente il percorso, i keypoints e le features delle immagini analizzate con l'algoritmo Orb
+    ArrayList<ImmagineOrb> immaginiAnalizzate = new ArrayList<>();
 
     //Verifica la connessione con la libreria OpenCv
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -234,8 +237,8 @@ public class Cbir extends AppCompatActivity {
                 break;
             case R.id.descrittoreLbp:
                 if (checked) {
-                    Toast.makeText(getApplicationContext(), "Hai scelto LBP", Toast.LENGTH_SHORT).show();
-                    tipo = TipoDiDescrittore.LBP;
+                    Toast.makeText(getApplicationContext(), "Hai scelto il descrittore ORB", Toast.LENGTH_SHORT).show();
+                    tipo = TipoDiDescrittore.ORB;
 
                     //Reset della seekbar
                     weightDescriptorSeekbar.setEnabled(false);
@@ -245,7 +248,7 @@ public class Cbir extends AppCompatActivity {
             case R.id.descrittoreEntrambi:
                 if (checked) {
                     Toast.makeText(getApplicationContext(), "Hai scelto entrambi i descrittori", Toast.LENGTH_SHORT).show();
-                    tipo = TipoDiDescrittore.ENTRAMBI;
+                    tipo = TipoDiDescrittore.BOTH;
 
                     //Abilito la seekbar
                     weightDescriptorSeekbar.setEnabled(true);
@@ -365,16 +368,16 @@ public class Cbir extends AppCompatActivity {
 
         String percorsoImmagine;
         String[] features;
-        Mat immagineDaIndicizzare;
+        Mat immagineDaIndicizzare = new Mat();
         ArraySet<String> listaFeatures;
 
         //Svuoto shared preference
         editor.clear();
 
         //Verifico che sia già stata inizializzato un shared preference, nel caso vuol dire che ho già effettuato l'indicizzazione
-        if(verificaSharedPreference(preference)){
-            return;
-        }
+        //if(verificaSharedPreference(preference)){
+          //  return;
+        //}
 
 
 
@@ -386,8 +389,6 @@ public class Cbir extends AppCompatActivity {
             if (Imgcodecs.imread(percorsoImmagine).channels() == 3) {
 
 
-                immagineDaIndicizzare = caricaImmagine(percorsoImmagine);
-                features = new String[TOTAL_DIMENSION];
 
                 //Arrayset da salvare nel shared preference
                 listaFeatures = new ArraySet<>();
@@ -396,32 +397,44 @@ public class Cbir extends AppCompatActivity {
                 //L'utente sceglie solo l'istogramma come descrittore
                 if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
                     Log.i(TAG,"Calcolo features con istogramma di colore");
+
+                    immagineDaIndicizzare = caricaImmagineIst(percorsoImmagine);
+                    features = new String[TOTAL_DIMENSION_WITH_HIST];
+
                     imageDescriptor = new ImageDescriptor();
                     features = imageDescriptor.calculateHist(immagineDaIndicizzare);
+
+                    for (int j = 0; j < features.length; j++) {
+
+                        listaFeatures.add(features[j]);
+                    }
+
+                    //Sto salvando il vettore di features nel shared preference
+                    editor.putStringSet(percorsoImmagine, listaFeatures);
                 }
 
                 //L'utente sceglie solo il local binary pattern come descrittore
-                else if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
-                    Log.i(TAG,"Calcolo features con local binary pattern");
+                else if (tipo.equals(TipoDiDescrittore.ORB)) {
+                    Log.i(TAG,"Calcolo features con ORB");
+
+                    immagineDaIndicizzare = caricaImmagineOrb(percorsoImmagine);
+
                     imageDescriptor = new ImageDescriptor();
-                    features = imageDescriptor.calculateHist(immagineDaIndicizzare);
+                    ImmagineOrb immagineAnalizzata = imageDescriptor.calculateOrb(immagineDaIndicizzare);
+                    immagineAnalizzata.setPath(percorsoImmagine);
+
+                    immaginiAnalizzate.add(immagineAnalizzata);
                 }
 
                 //L'utente sceglie entrambi i descrittori
-                else if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
-                    Log.i(TAG,"Calcolo features con entrambi i descrittori");
-                    imageDescriptor = new ImageDescriptor();
-                    features = imageDescriptor.calculateHist(immagineDaIndicizzare);
+                else if (tipo.equals(TipoDiDescrittore.BOTH)) {
 
                 }
 
-                for (int j = 0; j < features.length; j++) {
 
-                    listaFeatures.add(features[j]);
-                }
 
-                //Sto salvando il vettore di features nel shared preference
-                editor.putStringSet(percorsoImmagine, listaFeatures);
+
+
             } else {
                 //Immagini che non è possibile indicizzare
                 immagini_Escluse++;
@@ -437,7 +450,7 @@ public class Cbir extends AppCompatActivity {
     }
 
     //Il seguente metodo recupera un'immagine e la salva in un oggetto di tipo Mat
-    private Mat caricaImmagine(String uri) {
+    private Mat caricaImmagineIst(String uri) {
         //Carico  l'immagine
         Mat immagineOriginale = Imgcodecs.imread(uri);
         Mat immagineHSV = new Mat();
@@ -445,6 +458,15 @@ public class Cbir extends AppCompatActivity {
         //Conversiona immagine originale
         Imgproc.cvtColor(immagineOriginale, immagineHSV, Imgproc.COLOR_BGR2HSV);
         return immagineHSV;
+
+
+    }
+
+    private Mat caricaImmagineOrb(String uri){
+        Mat immagineOriginale = Imgcodecs.imread(uri);
+
+        return immagineOriginale;
+
 
 
     }
@@ -463,7 +485,7 @@ public class Cbir extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         //ArrayList delle immagini da mostrare
-        ArrayList<ImmagineDaMostrare> immaginiDaMostrare;
+        ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
 
         if (resultCode == RESULT_OK) {
             if (requestCode == SELECT_PICTURE) {
@@ -485,16 +507,27 @@ public class Cbir extends AppCompatActivity {
                     //Stringa contenente il percorso di salvataggio dell'immagine
                     imagePath = cursor.getString(columnIndex);
 
-                    //Ho recuperato l'immagine da analizzare e da confrontare
-                    Mat queryImage = caricaImmagine(imagePath);
-
                     //Inizializzo il comparatore
-                    Log.i(TAG,"Dimensione: " + preference.contains(listaPercorsiImmagini.get(0)));
-                    comparatore = new Comparatore(listaPercorsiImmagini, preference);
+                    comparatore = new Comparatore(listaPercorsiImmagini, preference,immaginiAnalizzate);
+
+                    if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)){
+                        //Ho recuperato l'immagine da analizzare e da confrontare
+                       Mat queryImage = caricaImmagineIst(imagePath);
+
+                        //Ora passo quell'immagine a un metodo che esegua il confronto
+                        immaginiDaMostrare = comparatore.calcolaDistanzaIst(queryImage);
+
+                    }
+                    else if(tipo.equals(TipoDiDescrittore.ORB)){
+                        //Ho recuperato l'immagine da analizzare e da confrontare
+                        Mat queryImage = caricaImmagineOrb(imagePath);
+
+                        immaginiDaMostrare = comparatore.calcolaDistanzaOrb(queryImage);
 
 
-                    //Ora passo quell'immagine a un metodo che esegua il confronto
-                    immaginiDaMostrare = comparatore.calcolaDistanza(queryImage);
+
+                    }
+                    else if(tipo.equals(TipoDiDescrittore.BOTH)){}
 
                     visualizzaRisulatato(immaginiDaMostrare);
 
