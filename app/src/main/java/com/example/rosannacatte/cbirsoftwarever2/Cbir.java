@@ -59,7 +59,6 @@ public class Cbir extends AppCompatActivity {
 
 
 
-    TipoDiDescrittore tipo = TipoDiDescrittore.ISTOGRAMMA;
 
     // Numero di immagini escluse dal calcolo delle features
     public int immagini_Escluse = 0;
@@ -104,6 +103,9 @@ public class Cbir extends AppCompatActivity {
 
     //COMPONENTI GRAFICHE
 
+    //TextView relativa alla scelta del descrittore da usare
+    private TextView scegliDescr;
+
     //Bottone per l'inserimento di un immagine
     private FloatingActionButton insertQueryImageFAB;
 
@@ -120,12 +122,16 @@ public class Cbir extends AppCompatActivity {
     private RadioButton descriptorBothButton;
 
     private int weightIstogramma;
-    private int weightLBP;
+    private int weightOrb;
+
+    private TipoDiDescrittore tipo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cbir);
+
+        scegliDescr = (TextView) findViewById(R.id.scegliDescr);
 
         weightDescriptorSeekbar=(SeekBar) findViewById(R.id.pesoDescrittori);
         weightProgressIstogrammaText= (TextView) findViewById(R.id.progressIstogramma);
@@ -140,10 +146,10 @@ public class Cbir extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 weightIstogramma=progress;
-                weightLBP=100-progress;
+                weightOrb=100-progress;
 
                 weightProgressIstogrammaText.setText(weightIstogramma + "%");
-                weightProgressLBPText.setText(weightLBP + "%");
+                weightProgressLBPText.setText(weightOrb + "%");
 
 
 
@@ -237,7 +243,7 @@ public class Cbir extends AppCompatActivity {
                 break;
             case R.id.descrittoreLbp:
                 if (checked) {
-                    Toast.makeText(getApplicationContext(), "Hai scelto il descrittore ORB", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Hai scelto ORB", Toast.LENGTH_SHORT).show();
                     tipo = TipoDiDescrittore.ORB;
 
                     //Reset della seekbar
@@ -368,7 +374,11 @@ public class Cbir extends AppCompatActivity {
 
         String percorsoImmagine;
         String[] features;
-        Mat immagineDaIndicizzare = new Mat();
+        String[]features_Ist;
+        String[] features_Orb;
+        Mat immagineDaIndicizzare;
+        Mat immagineDaIndicizzare_Ist;
+        Mat immagineDaIndicizzare_Orb;
         ArraySet<String> listaFeatures;
 
         //Svuoto shared preference
@@ -428,6 +438,29 @@ public class Cbir extends AppCompatActivity {
 
                 //L'utente sceglie entrambi i descrittori
                 else if (tipo.equals(TipoDiDescrittore.BOTH)) {
+                    Log.i(TAG,"Calcolo features con istogramma di colore e con Orb");
+
+                    //Calcolo Istogramma di colore
+                    immagineDaIndicizzare_Ist = caricaImmagineIst(percorsoImmagine);
+                    features_Ist = new String[TOTAL_DIMENSION_WITH_HIST];
+                    imageDescriptor = new ImageDescriptor();
+
+                    features_Ist = imageDescriptor.calculateHist(immagineDaIndicizzare_Ist);
+
+                    for (int j = 0; j < features_Ist.length; j++) {
+
+                        listaFeatures.add(features_Ist[j]);
+                    }
+
+                    //Sto salvando il vettore di features nel shared preference
+                    editor.putStringSet(percorsoImmagine, listaFeatures);
+
+                    //Calcolo features con Orb
+                    immagineDaIndicizzare_Orb = caricaImmagineOrb(percorsoImmagine);
+                    ImmagineOrb immagineAnalizzata = imageDescriptor.calculateOrb(immagineDaIndicizzare_Orb);
+                    immagineAnalizzata.setPath(percorsoImmagine);
+                    immaginiAnalizzate.add(immagineAnalizzata);
+
 
                 }
 
@@ -484,6 +517,8 @@ public class Cbir extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
+        scegliDescr.setVisibility(View.GONE);
+
         //ArrayList delle immagini da mostrare
         ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
 
@@ -510,6 +545,7 @@ public class Cbir extends AppCompatActivity {
                     //Inizializzo il comparatore
                     comparatore = new Comparatore(listaPercorsiImmagini, preference,immaginiAnalizzate);
 
+                    Log.i(TAG,tipo.toString());
                     if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)){
                         //Ho recuperato l'immagine da analizzare e da confrontare
                        Mat queryImage = caricaImmagineIst(imagePath);
@@ -527,7 +563,19 @@ public class Cbir extends AppCompatActivity {
 
 
                     }
-                    else if(tipo.equals(TipoDiDescrittore.BOTH)){}
+                    else if(tipo.equals(TipoDiDescrittore.BOTH)){
+                        // Ho recuperato l'immagine da analizzare e confrontare
+                        Mat queryImage_Ist = caricaImmagineIst(imagePath);
+                        Mat queryImage_Orb = caricaImmagineOrb(imagePath);
+
+                        float pesoIst = (float) weightIstogramma/100;
+                        float pesoOrb = (float) weightOrb/100;
+
+                        immaginiDaMostrare = comparatore.calcolaDistanzaBoth(queryImage_Ist,queryImage_Orb,pesoIst,pesoOrb);
+
+
+
+                    }
 
                     visualizzaRisulatato(immaginiDaMostrare);
 

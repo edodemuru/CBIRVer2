@@ -100,6 +100,7 @@ public class Comparatore {
                     ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(currentImage);
                     immagineDaMostrare.setDistanzaIst(currentDistanza);
                     immagineDaMostrare.setDistanzaOrb(-1);
+                    immagineDaMostrare.setDistanzaBoth(-1);
 
                     listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
                 }
@@ -137,10 +138,158 @@ public class Comparatore {
             Mat descriptorsImage = immaginiAnalizzate.get(i).getDescriptors();
             MatOfKeyPoint keypointsImage = immaginiAnalizzate.get(i).getKeypoints();
 
-            Log.i(TAG," numero di descrittori e di keypoints " + descriptorsImage.total() + " " + keypointsImage.total());
-
             Mat descriptorsQuery = queryImageData.getDescriptors();
             MatOfKeyPoint keypointsQuery = queryImageData.getKeypoints();
+
+            //Creazione di un matcher
+            DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+
+            MatOfDMatch filteredMatches = new MatOfDMatch();
+
+            //MATCHING
+            List<MatOfDMatch> matches = new ArrayList<MatOfDMatch>();
+
+            // Calcola i due match migliori tra prima e seconda immagine
+            matcher.knnMatch(descriptorsQuery, descriptorsImage, matches, 2);
+
+            // Ratio test
+            LinkedList<DMatch> good_matches = new LinkedList<DMatch>();
+            for (Iterator<MatOfDMatch> iterator = matches.iterator(); iterator.hasNext(); ) {
+                MatOfDMatch matOfDMatch = (MatOfDMatch) iterator.next();
+                if (matOfDMatch.toArray()[0].distance / matOfDMatch.toArray()[1].distance < 0.9) {
+                    good_matches.add(matOfDMatch.toArray()[0]);
+                }
+            }
+
+            // Individuazione coordinate dei keypoints di good_matches, per calcolare l'omografia
+            // e rimuovere valori anomali con RANSAC
+            List<Point> pts1 = new ArrayList<Point>();
+            List<Point> pts2 = new ArrayList<Point>();
+            for (int j = 0; j < good_matches.size(); j++) {
+                pts1.add(keypointsQuery.toList().get(good_matches.get(j).queryIdx).pt);
+                pts2.add(keypointsImage.toList().get(good_matches.get(j).trainIdx).pt);
+            }
+
+            // Conversione dei tipi di dato
+            Mat outputMask = new Mat();
+            MatOfPoint2f pts1Mat = new MatOfPoint2f();
+            pts1Mat.fromList(pts1);
+            MatOfPoint2f pts2Mat = new MatOfPoint2f();
+            pts2Mat.fromList(pts2);
+
+            // Find homography - here just used to perform match filtering with RANSAC, but could be used to e.g. stitch images
+            // the smaller the allowed reprojection error (here 15), the more matches are filtered
+            Mat Homog = Calib3d.findHomography(pts1Mat, pts2Mat, Calib3d.RANSAC, 15, outputMask, 2000, 0.995);
+
+            // outputMask contiente 0 e 1 che indicano quali match sono stati filtrati
+            LinkedList<DMatch> better_matches = new LinkedList<DMatch>();
+            for (int j = 0; j < good_matches.size(); j++) {
+                if (outputMask.get(i, 0)[0] != 0.0) {
+                    better_matches.add(good_matches.get(i));
+                }
+            }
+
+            float good_matches_size_float = (float) good_matches.size();
+            float matches_size_float = (float) matches.size();
+
+            // Il calcolo della distanza tra le due immagini viene fatto come #good_matches / #all_matches
+
+            float distanza = good_matches_size_float/matches_size_float;
+            distanza = 1 - distanza;
+
+            Log.i(TAG,"Distanza " + distanza);
+            if(distanza == 0) {
+
+            }else{
+                //Imposto la distanza calcolata con orb, e quella calcolata con l'istogramma la imposto a -1
+                ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(immaginiAnalizzate.get(i).getPath());
+                immagineDaMostrare.setDistanzaOrb(distanza);
+                immagineDaMostrare.setDistanzaIst(-1);
+                immagineDaMostrare.setDistanzaBoth(-1);
+
+                listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
+
+
+            }
+
+
+        }
+
+        // A questo punto restituisco l'arraylist all'interno
+        // del quale le immagini saranno ordinate sulla base della distanza
+
+        return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+
+    }
+
+    public ArrayList<ImmagineDaMostrare> calcolaDistanzaBoth(Mat queryImageIst, Mat queryImageOrb, float pesoIst, float pesoOrb){
+
+
+        //Calcolo distanza Istogramma
+
+        //Recupero i valori delle features dell'immagine query
+        int[] valoriFeaturesQueryIst = recuperaValoreFeaturesHist(imageDescriptor.calculateHist(queryImageIst));
+
+        //Elenco percorso immagini da mostrare
+        ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
+
+        //Adesso devo fare il confronto tra le features dell'immagine di query e le features delle immagini contenute nel dispositivo
+        for (int i = 0; i < listaPercorsoImmagini.size(); i++) {
+
+            String currentImage = listaPercorsoImmagini.get(i);
+
+            if (Imgcodecs.imread(currentImage).channels() == 3) {
+
+                //Recupero le features dallo shared preference sotto forma di set
+                Set<String> setFeatures = preferences.getStringSet(currentImage, null);
+
+
+                //Converto il set di stringhe in un array
+                String[] arrayFeatures = setToArray(setFeatures);
+
+                //Ottengo i valori delle features salvate nello shared preference
+                int[] valoriFeaturesSavedImage = recuperaValoreFeaturesHist(arrayFeatures);
+
+                //Calcolo la distanza tra i due vettori
+                int currentDistanza = distanza(valoriFeaturesQueryIst, valoriFeaturesSavedImage);
+
+                Log.i(TAG,"Distanza Ist " + currentDistanza);
+
+
+                if (currentDistanza == 0) {
+                    //In questo caso l'immagine è identica, non la mostro di nuovo
+
+                } else {
+
+                    // Imposto la distanza calcolata con l'istogramma, mentre quella relativa all'algoritmo orb a -1
+                    ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(currentImage);
+                    immagineDaMostrare.setDistanzaIst(currentDistanza);
+
+                    listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
+                }
+
+
+
+            }
+
+        }
+
+        //ORB
+
+        //Calcolo keypoints e features per l'immagine di query
+        ImmagineOrb valoriFeaturesQueryOrb = imageDescriptor.calculateOrb(queryImageOrb);
+
+        // Inserisco i valori delle features dell'immagine di query in un oggetto Mat
+        //Mat valoriFeaturesQueryMat = new Mat(500,32,CV_8UC1);
+        //valoriFeaturesQueryMat.put(0,0,valoriFeaturesQuery);
+
+        for (int i = 0; i < immaginiAnalizzate.size(); i++) {
+
+            Mat descriptorsImage = immaginiAnalizzate.get(i).getDescriptors();
+            MatOfKeyPoint keypointsImage = immaginiAnalizzate.get(i).getKeypoints();
+
+            Mat descriptorsQuery = valoriFeaturesQueryOrb.getDescriptors();
+            MatOfKeyPoint keypointsQuery = valoriFeaturesQueryOrb.getKeypoints();
 
 
             //Calcolo della distanza tra i due vettori di byte calcolati
@@ -193,28 +342,29 @@ public class Comparatore {
                 }
             }
 
-            float better_matches_size_float = (float) better_matches.size();
+            float good_matches_size_float = (float) good_matches.size();
             float matches_size_float = (float) matches.size();
-
-            Log.i(TAG, "Numero di buoni match " + better_matches_size_float + "Numero reale " + better_matches.size());
-            Log.i(TAG, "Numero di match " + matches_size_float + " Numero reale " + matches.size());
-            Log.i(TAG, "Divisione " + better_matches_size_float/matches_size_float);
 
             // Il calcolo della distanza tra le due immagini viene fatto come #good_matches / #all_matches
 
-            float distanza = better_matches_size_float/matches_size_float;
+            float distanza = good_matches_size_float/matches_size_float;
             distanza = 1 - distanza;
 
-            Log.i(TAG,"Distanza " + distanza);
+            Log.i(TAG,"Distanza Orb " + distanza);
             if(distanza == 0) {
 
             }else{
                 //Imposto la distanza calcolata con orb, e quella calcolata con l'istogramma la imposto a -1
-                ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(immaginiAnalizzate.get(i).getPath());
-                immagineDaMostrare.setDistanzaOrb(distanza);
-                immagineDaMostrare.setDistanzaIst(-1);
 
-                listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
+                for(ImmagineDaMostrare immagine : listaPercorsoImmaginiDaMostrare){
+                    if(immagine.getPercorsoImmagine().equals(immaginiAnalizzate.get(i).getPath())){
+                        immagine.setDistanzaOrb(distanza);
+
+
+                    }
+
+
+                }
 
 
             }
@@ -222,15 +372,17 @@ public class Comparatore {
 
         }
 
-        // A questo punto restituisco l'arraylist all'interno
-        // del quale le immagini saranno ordinate sulla base della distanza
-        for(int i=0; i<listaPercorsoImmaginiDaMostrare.size(); i++ ){
-          Log.i(TAG, "" + ordinaArrayList(listaPercorsoImmaginiDaMostrare).get(i).getDistanzaOrb());
-        }
+        listaPercorsoImmaginiDaMostrare= normalizzaMinMax(listaPercorsoImmaginiDaMostrare);
+        listaPercorsoImmaginiDaMostrare = mediaPesata(listaPercorsoImmaginiDaMostrare,pesoIst,pesoOrb);
+
 
         return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
 
+
+
     }
+
+
 
     //Metodo che recupera un vettore di interi da un vettore di stringhe
     private int[] recuperaValoreFeaturesHist(String[] listaValori) {
@@ -393,12 +545,38 @@ public class Comparatore {
 
     private ArrayList<ImmagineDaMostrare> ordinaArrayList(ArrayList<ImmagineDaMostrare> arrayList) {
 
+        // Se entrambi i valori di distanza sono diversi da -1
+        if(arrayList.get(0).getDistanzaBoth() != -1){
+
+            // Ordino l'arrayList basandomi sulla distanza id entrambi i descrittori
+            for (int i = 0; i < arrayList.size() - 1; i++) {
+                for (int j = 0; j < arrayList.size() - i - 1; j++) {
+
+                    float distanza1 = arrayList.get(j).getDistanzaBoth();
+                    float distanza2 = arrayList.get(j + 1).getDistanzaBoth();
+
+                    if (distanza1 > distanza2) {
+                        ImmagineDaMostrare tmp1 = arrayList.get(j);
+                        ImmagineDaMostrare tmp2 = arrayList.get(j + 1);
+
+                        arrayList.remove(j);
+                        arrayList.add(j, tmp2);
+                        arrayList.remove(j + 1);
+                        arrayList.add(j + 1, tmp1);
+                    }
+                }
+            }
+
+            return arrayList;
+
+        }
+
         if (arrayList.get(0).getDistanzaIst() != -1){
             for (int i = 0; i < arrayList.size() - 1; i++) {
                 for (int j = 0; j < arrayList.size() - i - 1; j++) {
 
-                    int distanza1 = arrayList.get(j).getDistanzaIst();
-                    int distanza2 = arrayList.get(j + 1).getDistanzaIst();
+                    int distanza1 = (int) arrayList.get(j).getDistanzaIst();
+                    int distanza2 = (int) arrayList.get(j + 1).getDistanzaIst();
 
                     if (distanza1 > distanza2) {
                         ImmagineDaMostrare tmp1 = arrayList.get(j);
@@ -439,6 +617,75 @@ public class Comparatore {
 
 
         }
+
+    }
+
+    private ArrayList<ImmagineDaMostrare> mediaPesata(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare, float pesoIst, float pesoOrb){
+        for (ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare){
+            float mediaPesata = (immagine.getDistanzaIst()* pesoIst) + (immagine.getDistanzaOrb()*pesoOrb);
+            immagine.setDistanzaBoth(mediaPesata);
+
+        }
+
+        return listaPercorsiImmaginiDaMostrare;
+    }
+
+    // Questo metodo calcola la normalizzazione min max delle distanza calcolate prima con l'istogramma, poi con Orb
+    private ArrayList<ImmagineDaMostrare> normalizzaMinMax(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare){
+        float[] minMax = ottieniMinMax(listaPercorsiImmaginiDaMostrare);
+        float normIst;
+        float normOrb;
+
+        for(ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare){
+            normIst = ((immagine.getDistanzaIst() - minMax[1]) / (minMax[0] - minMax[1]));
+            Log.i(TAG,"Distanza istogramma normalizzato " + normIst);
+            immagine.setDistanzaIst(normIst);
+
+            normOrb = ((immagine.getDistanzaOrb() - minMax[3]) / (minMax[2] - minMax[3]));
+            Log.i(TAG,"Distanza Orb normalizzato " + normOrb);
+            immagine.setDistanzaOrb(normOrb);
+
+        }
+
+        return listaPercorsiImmaginiDaMostrare;
+
+
+    }
+
+
+    // Metodo che si occupa di ottenere i valori massimi e minimi delle distanze calcolate, sia con l'istogramma che con ORB
+    private float[] ottieniMinMax(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare){
+        float maxIst = Float.NEGATIVE_INFINITY;
+        float minIst = Float.POSITIVE_INFINITY;
+
+        float maxOrb = Float.NEGATIVE_INFINITY;
+        float minOrb = Float.POSITIVE_INFINITY;
+
+        float[] result = new float[4];
+
+        for(ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare){
+            if(immagine.getDistanzaIst()>maxIst)
+                maxIst = immagine.getDistanzaIst();
+
+            if(immagine.getDistanzaIst()<minIst)
+                minIst = immagine.getDistanzaIst();
+
+            if(immagine.getDistanzaOrb()>maxOrb)
+                maxOrb = immagine.getDistanzaOrb();
+
+            if(immagine.getDistanzaOrb()< minOrb)
+                minOrb = immagine.getDistanzaOrb();
+
+        }
+
+        result[0] = maxIst;
+        result[1] = minIst;
+        result[2] = maxOrb;
+        result[3] = minOrb;
+
+
+        return result;
+
 
     }
 }

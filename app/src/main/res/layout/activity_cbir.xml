@@ -8,7 +8,7 @@ android:layout_height="match_parent"
 tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/scegliDescr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Scegli un descrittore"
@@ -42,7 +42,7 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
 
             android:layout_toEndOf="@+id/sad_smile_image_view"
             android:onClick="onRadioButtonClicked"
-            android:text="Local Binary Pattern" />
+            android:text="Orb" />
 
         <RadioButton
             android:id="@+id/descrittoreEntrambi"
@@ -122,7 +122,7 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
         android:layout_height="wrap_content"
         android:layout_alignStart="@+id/insert_query_image_button"
         android:layout_below="@+id/groupDescrittoreIstogramma"
-        android:text="LBP" />
+        android:text="Orb" />
 
     <TextView
         android:id="@+id/progressIstogramma"
