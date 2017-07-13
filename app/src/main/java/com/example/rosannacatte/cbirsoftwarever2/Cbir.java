@@ -124,7 +124,7 @@ public class Cbir extends AppCompatActivity {
     private int weightIstogramma;
     private int weightOrb;
 
-    private TipoDiDescrittore tipo;
+    private static TipoDiDescrittore tipo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -545,7 +545,7 @@ public class Cbir extends AppCompatActivity {
                     //Inizializzo il comparatore
                     comparatore = new Comparatore(listaPercorsiImmagini, preference,immaginiAnalizzate);
 
-                    Log.i(TAG,tipo.toString());
+
                     if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)){
                         //Ho recuperato l'immagine da analizzare e da confrontare
                        Mat queryImage = caricaImmagineIst(imagePath);

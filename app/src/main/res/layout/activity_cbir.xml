@@ -51,7 +51,7 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
 
             android:layout_toEndOf="@+id/sad_smile_image_view"
             android:onClick="onRadioButtonClicked"
-            android:text="Entrambi" />
+            android:text="Entrambi i descrittori" />
 
 
     </RadioGroup>
