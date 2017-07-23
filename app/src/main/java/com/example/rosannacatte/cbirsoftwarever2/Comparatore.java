@@ -3,13 +3,10 @@ package com.example.rosannacatte.cbirsoftwarever2;
 import android.content.SharedPreferences;
 import android.util.Log;
 
-import org.opencv.calib3d.Calib3d;
 import org.opencv.core.DMatch;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Point;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.imgcodecs.Imgcodecs;
 
@@ -19,8 +16,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
-import static org.opencv.core.CvType.CV_8UC1;
 
 /**
  * Created by root on 24/01/17.
@@ -70,9 +65,9 @@ public class Comparatore {
         ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
 
         //Adesso devo fare il confronto tra le features dell'immagine di query e le features delle immagini contenute nel dispositivo
-        for (int i = 0; i < listaPercorsoImmagini.size(); i++) {
+        for (int i = 0; i < getListaPercorsoImmagini().size(); i++) {
 
-            String currentImage = listaPercorsoImmagini.get(i);
+            String currentImage = getListaPercorsoImmagini().get(i);
 
             if (Imgcodecs.imread(currentImage).channels() == 3) {
 
@@ -106,10 +101,6 @@ public class Comparatore {
                 }
 
 
-            /*
-            ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(currentImage, currentDistanza);
-            listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
-            */
             }
 
         }
@@ -125,10 +116,6 @@ public class Comparatore {
 
         //Calcolo keypoints e features per l'immagine di query
         ImmagineOrb queryImageData = imageDescriptor.calculateOrb(queryImage);
-
-        // Inserisco i valori delle features dell'immagine di query in un oggetto Mat
-        //Mat valoriFeaturesQueryMat = new Mat(500,32,CV_8UC1);
-        //valoriFeaturesQueryMat.put(0,0,valoriFeaturesQuery);
 
         //Elenco percorso immagini da mostrare
         ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
@@ -158,34 +145,6 @@ public class Comparatore {
                 MatOfDMatch matOfDMatch = (MatOfDMatch) iterator.next();
                 if (matOfDMatch.toArray()[0].distance / matOfDMatch.toArray()[1].distance < 0.9) {
                     good_matches.add(matOfDMatch.toArray()[0]);
-                }
-            }
-
-            // Individuazione coordinate dei keypoints di good_matches, per calcolare l'omografia
-            // e rimuovere valori anomali con RANSAC
-            List<Point> pts1 = new ArrayList<Point>();
-            List<Point> pts2 = new ArrayList<Point>();
-            for (int j = 0; j < good_matches.size(); j++) {
-                pts1.add(keypointsQuery.toList().get(good_matches.get(j).queryIdx).pt);
-                pts2.add(keypointsImage.toList().get(good_matches.get(j).trainIdx).pt);
-            }
-
-            // Conversione dei tipi di dato
-            Mat outputMask = new Mat();
-            MatOfPoint2f pts1Mat = new MatOfPoint2f();
-            pts1Mat.fromList(pts1);
-            MatOfPoint2f pts2Mat = new MatOfPoint2f();
-            pts2Mat.fromList(pts2);
-
-            // Find homography - here just used to perform match filtering with RANSAC, but could be used to e.g. stitch images
-            // the smaller the allowed reprojection error (here 15), the more matches are filtered
-            Mat Homog = Calib3d.findHomography(pts1Mat, pts2Mat, Calib3d.RANSAC, 15, outputMask, 2000, 0.995);
-
-            // outputMask contiente 0 e 1 che indicano quali match sono stati filtrati
-            LinkedList<DMatch> better_matches = new LinkedList<DMatch>();
-            for (int j = 0; j < good_matches.size(); j++) {
-                if (outputMask.get(i, 0)[0] != 0.0) {
-                    better_matches.add(good_matches.get(i));
                 }
             }
 
@@ -234,9 +193,9 @@ public class Comparatore {
         ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
 
         //Adesso devo fare il confronto tra le features dell'immagine di query e le features delle immagini contenute nel dispositivo
-        for (int i = 0; i < listaPercorsoImmagini.size(); i++) {
+        for (int i = 0; i < getListaPercorsoImmagini().size(); i++) {
 
-            String currentImage = listaPercorsoImmagini.get(i);
+            String currentImage = getListaPercorsoImmagini().get(i);
 
             if (Imgcodecs.imread(currentImage).channels() == 3) {
 
@@ -279,9 +238,6 @@ public class Comparatore {
         //Calcolo keypoints e features per l'immagine di query
         ImmagineOrb valoriFeaturesQueryOrb = imageDescriptor.calculateOrb(queryImageOrb);
 
-        // Inserisco i valori delle features dell'immagine di query in un oggetto Mat
-        //Mat valoriFeaturesQueryMat = new Mat(500,32,CV_8UC1);
-        //valoriFeaturesQueryMat.put(0,0,valoriFeaturesQuery);
 
         for (int i = 0; i < immaginiAnalizzate.size(); i++) {
 
@@ -314,33 +270,6 @@ public class Comparatore {
                 }
             }
 
-            // Individuazione coordinate dei keypoints di good_matches, per calcolare l'omografia
-            // e rimuovere valori anomali con RANSAC
-            List<Point> pts1 = new ArrayList<Point>();
-            List<Point> pts2 = new ArrayList<Point>();
-            for (int j = 0; j < good_matches.size(); j++) {
-                pts1.add(keypointsQuery.toList().get(good_matches.get(j).queryIdx).pt);
-                pts2.add(keypointsImage.toList().get(good_matches.get(j).trainIdx).pt);
-            }
-
-            // Conversione dei tipi di dato
-            Mat outputMask = new Mat();
-            MatOfPoint2f pts1Mat = new MatOfPoint2f();
-            pts1Mat.fromList(pts1);
-            MatOfPoint2f pts2Mat = new MatOfPoint2f();
-            pts2Mat.fromList(pts2);
-
-            // Find homography - here just used to perform match filtering with RANSAC, but could be used to e.g. stitch images
-            // the smaller the allowed reprojection error (here 15), the more matches are filtered
-            Mat Homog = Calib3d.findHomography(pts1Mat, pts2Mat, Calib3d.RANSAC, 15, outputMask, 2000, 0.995);
-
-            // outputMask contiente 0 e 1 che indicano quali match sono stati filtrati
-            LinkedList<DMatch> better_matches = new LinkedList<DMatch>();
-            for (int j = 0; j < good_matches.size(); j++) {
-                if (outputMask.get(i, 0)[0] != 0.0) {
-                    better_matches.add(good_matches.get(i));
-                }
-            }
 
             float good_matches_size_float = (float) good_matches.size();
             float matches_size_float = (float) matches.size();
@@ -354,7 +283,7 @@ public class Comparatore {
             if(distanza == 0) {
 
             }else{
-                //Imposto la distanza calcolata con orb, e quella calcolata con l'istogramma la imposto a -1
+                //Imposto la distanza calcolata con orb
 
                 for(ImmagineDaMostrare immagine : listaPercorsoImmaginiDaMostrare){
                     if(immagine.getPercorsoImmagine().equals(immaginiAnalizzate.get(i).getPath())){
@@ -572,6 +501,8 @@ public class Comparatore {
         }
 
         if (arrayList.get(0).getDistanzaIst() != -1){
+            // Ordino l'ArrayList basandomi sulla distanza dell'istogramma
+
             for (int i = 0; i < arrayList.size() - 1; i++) {
                 for (int j = 0; j < arrayList.size() - i - 1; j++) {
 
@@ -593,7 +524,7 @@ public class Comparatore {
         return arrayList;
     }
         else{
-            //Calcolo distanza per Orb
+            //Ordino le distanze dell'ArrayList basandomi sull'algoritmo Orb
             for (int i = 0; i < arrayList.size() - 1; i++) {
                 for (int j = 0; j < arrayList.size() - i - 1; j++) {
 
@@ -687,5 +618,9 @@ public class Comparatore {
         return result;
 
 
+    }
+
+    public ArrayList<String> getListaPercorsoImmagini() {
+        return listaPercorsoImmagini;
     }
 }

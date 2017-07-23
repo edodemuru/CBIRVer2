@@ -312,36 +312,9 @@ public class ImageDescriptor {
         // Le informazioni sull'immagine vengono salvate in un oggetto Immagine Orb
         ImmagineOrb immagineAnalizzata = new ImmagineOrb(keypoints,descriptors,null);
 
-        //In data estraggo le features trovate
-        //byte[] data = new byte[(int) descriptors.total()];
-        //descriptors.get(0, 0, data);
-
-        //String[] features;
-        //features = convertToString(data);
-
-        //int [] dataKeypoint = keypoints.toArray().;
-
         return immagineAnalizzata;
 
     }
 
-    private String[] convertToString(byte[] data) {
-        String[] features = new String[data.length];
 
-        for (int i = 0; i < features.length; i++) {
-            // La memorizzazione di ogni singolo byte nel vettore di stringhe viene effettuta
-            // inserendo il byte in un vettore di stringhe, convertendolo in una stringa, con una codifica
-            // ISO_8859_1, codifica 1 a 1 tra i byte e la stringa, per avere poi la possibilità di riconversione
-            String feature = new String(new byte[]{data[i]}, StandardCharsets.ISO_8859_1);
-
-            //Aggiungo alla stringa un indice in modo tale da poterla poi distinguere
-            features[i] = Integer.toString(i) + "_" + feature;
-
-
-        }
-
-        return features;
-
-
-    }
 }
