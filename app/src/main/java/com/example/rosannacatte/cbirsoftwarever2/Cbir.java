@@ -1,16 +1,20 @@
 package com.example.rosannacatte.cbirsoftwarever2;
 
 import android.Manifest;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.util.ArraySet;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,6 +22,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
@@ -34,6 +39,9 @@ import org.opencv.imgproc.Imgproc;
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+
+import static android.content.ContentValues.TAG;
+import static android.content.Context.MODE_PRIVATE;
 
 public class Cbir extends AppCompatActivity {
 
@@ -58,6 +66,7 @@ public class Cbir extends AppCompatActivity {
     }
 
 
+    private static TipoDiDescrittore tipoDescrittore;
 
 
     // Numero di immagini escluse dal calcolo delle features
@@ -117,14 +126,16 @@ public class Cbir extends AppCompatActivity {
 
     //TextView che danno una stima in percentuale del peso dei descrittori
     private TextView weightProgressIstogrammaText;
-    private TextView weightProgressLBPText;
+    private TextView weightProgressORBText;
 
-    private RadioButton descriptorBothButton;
+    // Progress Bar per indicizzazione immagini
+    private ProgressBar progressIndicizzazione;
 
-    private int weightIstogramma;
+    private TextView attendere;
+
+    // Valore peso istogramma
+    private int weightIstogramma ;
     private int weightOrb;
-
-    private static TipoDiDescrittore tipo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,21 +146,39 @@ public class Cbir extends AppCompatActivity {
 
         weightDescriptorSeekbar=(SeekBar) findViewById(R.id.pesoDescrittori);
         weightProgressIstogrammaText= (TextView) findViewById(R.id.progressIstogramma);
-        weightProgressLBPText=(TextView) findViewById(R.id.progressLBP);
+        weightProgressORBText=(TextView) findViewById(R.id.progressORB);
+        progressIndicizzazione = (ProgressBar) findViewById(R.id.progressIndicizzazione);
 
-        descriptorBothButton=(RadioButton) findViewById(R.id.descrittoreEntrambi);
+        //Inizializzo ed elimino dall'interfaccia il messaggio di attesa
+        attendere = (TextView) findViewById(R.id.attendere);
+        attendere.setVisibility(View.GONE);
 
-        weightDescriptorSeekbar.setEnabled(false);
+        //Abilito la seekbar
+        weightDescriptorSeekbar.setEnabled(true);
 
+        //Disabilito la progressBar
+        progressIndicizzazione.setVisibility(View.GONE);
+        progressIndicizzazione.setProgress(0);
+
+        //Carico i valori di default, andandoli a prelevare dall'interfaccia
+        weightOrb = Integer.parseInt(weightProgressORBText.getText().toString().split("%")[0]);
+        weightIstogramma = Integer.parseInt(weightProgressIstogrammaText.getText().toString().split("%")[0]);
+
+        if(weightOrb == 0)
+            tipoDescrittore = TipoDiDescrittore.ISTOGRAMMA;
+        else if(weightOrb == 0)
+            tipoDescrittore = TipoDiDescrittore.ISTOGRAMMA;
+        else
+            tipoDescrittore = TipoDiDescrittore.BOTH;
 
         weightDescriptorSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                weightIstogramma=progress;
-                weightOrb=100-progress;
+                weightIstogramma=100 - progress;
+                weightOrb=progress;
 
                 weightProgressIstogrammaText.setText(weightIstogramma + "%");
-                weightProgressLBPText.setText(weightOrb + "%");
+                weightProgressORBText.setText(weightOrb + "%");
 
 
 
@@ -162,6 +191,14 @@ public class Cbir extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
+
+                if(weightIstogramma == 0)
+                    //Se il peso dell'istogramma è pari a 0, il tipo di descrittore risulterà orb
+                    tipoDescrittore = TipoDiDescrittore.ORB;
+                else if(weightOrb == 0)
+                    tipoDescrittore = TipoDiDescrittore.ISTOGRAMMA;
+                else
+                    tipoDescrittore = TipoDiDescrittore.BOTH;
 
             }
         });
@@ -193,21 +230,52 @@ public class Cbir extends AppCompatActivity {
             insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    //Elimino dall'interfaccia il floating action button
+                    insertQueryImageFAB.setVisibility(View.GONE);
 
                     //Devo recuperare tutti gli Uri delle immagini presenti in galleria
                     listaPercorsiImmagini = new ArrayList<>();
                     listaPercorsiImmagini = recuperaPercorsoImmagini();
 
+                    progressIndicizzazione.setMax(listaPercorsiImmagini.size() - 1);
+
+                    progressIndicizzazione.setVisibility(View.VISIBLE);
+                    attendere.setVisibility(View.VISIBLE);
+
+                    Thread thread = new Thread(){
+                        @Override
+                        public void run() {
+                                indicizza(listaPercorsiImmagini);
+
+                            Log.i(TAG, "Tipo di descrittore " + tipoDescrittore + " dimensione immagini analizzate " + immaginiAnalizzate.size());
+
+                            //Creo un intent per aprire la galleria e selezionare un immagine da anlizzare
+                            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+                            //Avvio l'activity per ricevere risultati
+                            startActivityForResult(intent, SELECT_PICTURE);
+
+
+                        }
+                    };
+
+
+                    thread.start();
+
+
+
                     //VA FATTO IL CONTROLLO SU PRECEDENTI SHAREDPREFERENCE
 
                     //Indicizzo
-                    indicizza(listaPercorsiImmagini);
+                    //indicizza(listaPercorsiImmagini);
+
 
                     //Creo un intent per aprire la galleria e selezionare un immagine da anlizzare
-                    Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    //Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
                     //Avvio l'activity per ricevere risultati
-                    startActivityForResult(intent, SELECT_PICTURE);
+                     //startActivityForResult(intent, SELECT_PICTURE);
+
 
 
                 }
@@ -221,47 +289,6 @@ public class Cbir extends AppCompatActivity {
         }
 
 
-    }
-
-    public void onRadioButtonClicked(View view) {
-        // Il radio button è stato premuto?
-        boolean checked = ((RadioButton) view).isChecked();
-
-
-        // Controlla quale radio button è stato premuto
-        switch (view.getId()) {
-            case R.id.descrittoreIstogramma:
-                if (checked) {
-                    Toast.makeText(getApplicationContext(), "Hai scelto Istogramma", Toast.LENGTH_SHORT).show();
-                    tipo = TipoDiDescrittore.ISTOGRAMMA;
-
-                    //Reset della seekbar
-                    weightDescriptorSeekbar.setEnabled(false);
-                    weightDescriptorSeekbar.setProgress(50);
-
-                }
-                break;
-            case R.id.descrittoreLbp:
-                if (checked) {
-                    Toast.makeText(getApplicationContext(), "Hai scelto ORB", Toast.LENGTH_SHORT).show();
-                    tipo = TipoDiDescrittore.ORB;
-
-                    //Reset della seekbar
-                    weightDescriptorSeekbar.setEnabled(false);
-                    weightDescriptorSeekbar.setProgress(50);
-                }
-                break;
-            case R.id.descrittoreEntrambi:
-                if (checked) {
-                    Toast.makeText(getApplicationContext(), "Hai scelto entrambi i descrittori", Toast.LENGTH_SHORT).show();
-                    tipo = TipoDiDescrittore.BOTH;
-
-                    //Abilito la seekbar
-                    weightDescriptorSeekbar.setEnabled(true);
-                }
-                break;
-
-        }
     }
 
     //Metodo per verifica dei permessi
@@ -288,17 +315,6 @@ public class Cbir extends AppCompatActivity {
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                     Log.i(TAG, "Permesso accettato");
-
-                    //Devo recuperare tutti gli Uri delle immagini presenti in galleria
-                    //listaPercorsiImmagini = new ArrayList<>();
-                    //listaPercorsiImmagini = recuperaPercorsoImmagini();
-
-
-                    //VA FATTO IL CONTROLLO SU PRECEDENTI SHAREDPREFERENCE
-
-                    //Indicizzo
-                    //indicizza(listaPercorsiImmagini);
-
 
                 } else {
 
@@ -381,6 +397,7 @@ public class Cbir extends AppCompatActivity {
         Mat immagineDaIndicizzare_Orb;
         ArraySet<String> listaFeatures;
 
+
         //Svuoto shared preference
         editor.clear();
 
@@ -393,6 +410,8 @@ public class Cbir extends AppCompatActivity {
 
         for (int i = 0; i < percorsoImmagini.size(); i++) {
 
+            progressIndicizzazione.incrementProgressBy(1);
+
             percorsoImmagine = percorsoImmagini.get(i);
 
             // L'immagine che devo indicizzare deve avere almeno 3 o 4 canali e depth == CV_8U o depth == CV_32F
@@ -403,9 +422,8 @@ public class Cbir extends AppCompatActivity {
                 //Arrayset da salvare nel shared preference
                 listaFeatures = new ArraySet<>();
 
-
                 //L'utente sceglie solo l'istogramma come descrittore
-                if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)) {
+                if (tipoDescrittore.equals(TipoDiDescrittore.ISTOGRAMMA)) {
                     Log.i(TAG,"Calcolo features con istogramma di colore");
 
                     immagineDaIndicizzare = caricaImmagineIst(percorsoImmagine);
@@ -424,7 +442,7 @@ public class Cbir extends AppCompatActivity {
                 }
 
                 //L'utente sceglie solo il local binary pattern come descrittore
-                else if (tipo.equals(TipoDiDescrittore.ORB)) {
+                else if (tipoDescrittore.equals(TipoDiDescrittore.ORB)) {
                     Log.i(TAG,"Calcolo features con ORB");
 
                     immagineDaIndicizzare = caricaImmagineOrb(percorsoImmagine);
@@ -437,8 +455,9 @@ public class Cbir extends AppCompatActivity {
                 }
 
                 //L'utente sceglie entrambi i descrittori
-                else if (tipo.equals(TipoDiDescrittore.BOTH)) {
+                else if (tipoDescrittore.equals(TipoDiDescrittore.BOTH)) {
                     Log.i(TAG,"Calcolo features con istogramma di colore e con Orb");
+                    Log.i(TAG,"Peso ORB " + weightOrb + " Peso Istogramma " + weightIstogramma);
 
                     //Calcolo Istogramma di colore
                     immagineDaIndicizzare_Ist = caricaImmagineIst(percorsoImmagine);
@@ -451,6 +470,8 @@ public class Cbir extends AppCompatActivity {
 
                         listaFeatures.add(features_Ist[j]);
                     }
+
+
 
                     //Sto salvando il vettore di features nel shared preference
                     editor.putStringSet(percorsoImmagine, listaFeatures);
@@ -466,11 +487,8 @@ public class Cbir extends AppCompatActivity {
 
 
 
-
-
             } else {
-                //Immagini che non è possibile indicizzare
-                immagini_Escluse++;
+                // Immagini che non è possibile indicizzare
 
             }
 
@@ -517,8 +535,6 @@ public class Cbir extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        scegliDescr.setVisibility(View.GONE);
-
         //ArrayList delle immagini da mostrare
         ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
 
@@ -545,8 +561,10 @@ public class Cbir extends AppCompatActivity {
                     //Inizializzo il comparatore
                     comparatore = new Comparatore(listaPercorsiImmagini, preference,immaginiAnalizzate);
 
+                    Log.i(TAG,"Tipo di descrittore" + tipoDescrittore.toString());
 
-                    if (tipo.equals(TipoDiDescrittore.ISTOGRAMMA)){
+                    Log.i(TAG, "Numero immagini analizzate "+ immaginiAnalizzate.size());
+                    if (tipoDescrittore.equals(TipoDiDescrittore.ISTOGRAMMA)){
                         //Ho recuperato l'immagine da analizzare e da confrontare
                        Mat queryImage = caricaImmagineIst(imagePath);
 
@@ -554,7 +572,7 @@ public class Cbir extends AppCompatActivity {
                         immaginiDaMostrare = comparatore.calcolaDistanzaIst(queryImage);
 
                     }
-                    else if(tipo.equals(TipoDiDescrittore.ORB)){
+                    else if(tipoDescrittore.equals(TipoDiDescrittore.ORB)){
                         //Ho recuperato l'immagine da analizzare e da confrontare
                         Mat queryImage = caricaImmagineOrb(imagePath);
 
@@ -563,7 +581,7 @@ public class Cbir extends AppCompatActivity {
 
 
                     }
-                    else if(tipo.equals(TipoDiDescrittore.BOTH)){
+                    else if(tipoDescrittore.equals(TipoDiDescrittore.BOTH)){
                         // Ho recuperato l'immagine da analizzare e confrontare
                         Mat queryImage_Ist = caricaImmagineIst(imagePath);
                         Mat queryImage_Orb = caricaImmagineOrb(imagePath);
@@ -621,6 +639,10 @@ public class Cbir extends AppCompatActivity {
             textView.setVisibility(View.GONE);
             mostraImmagini.setVisibility(View.VISIBLE);
 
+            scegliDescr.setVisibility(View.GONE);
+            progressIndicizzazione.setVisibility(View.GONE);
+            attendere.setVisibility(View.GONE);
+
 
             //Creo l'arrayListi di immagini da mostrare con i 5 migliori risultati
 
@@ -647,4 +669,8 @@ public class Cbir extends AppCompatActivity {
 
 
 }
+
+
+
+
 

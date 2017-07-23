@@ -11,60 +11,21 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
         android:id="@+id/scegliDescr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Scegli un descrittore"
+        android:text="Scegli peso descrittore"
         android:layout_marginTop="0dp"
         android:layout_below="@+id/sad_smile_image_view"
         android:textStyle="bold"
         android:layout_alignParentStart="true" />
 
-    <RadioGroup
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_weight="1.03"
-        android:orientation="vertical"
-        android:checkedButton="@id/istogramma"
-        android:id="@+id/groupDescrittoreIstogramma"
-        android:layout_marginTop="25dp"
-        android:layout_below="@+id/imagesList"
-        android:layout_alignParentStart="true">
-
-        <RadioButton
-            android:id="@+id/descrittoreIstogramma"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onRadioButtonClicked"
-            android:text="Istogramma" />
-
-        <RadioButton
-            android:id="@+id/descrittoreLbp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-
-            android:layout_toEndOf="@+id/sad_smile_image_view"
-            android:onClick="onRadioButtonClicked"
-            android:text="Orb" />
-
-        <RadioButton
-            android:id="@+id/descrittoreEntrambi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-
-            android:layout_toEndOf="@+id/sad_smile_image_view"
-            android:onClick="onRadioButtonClicked"
-            android:text="Entrambi i descrittori" />
-
-
-    </RadioGroup>
-
     <SeekBar
         android:id="@+id/pesoDescrittori"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/groupDescrittoreIstogramma"
-        android:layout_centerHorizontal="true"
+
         android:max="100"
         android:progress="50"
-        />
+        android:layout_alignTop="@+id/pesoORB"
+        android:layout_centerHorizontal="true" />
 
     <ImageView
     android:id="@+id/sad_smile_image_view"
@@ -102,27 +63,28 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
         android:id="@+id/insert_query_image_text_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Seleziona un'immagine!"
+        android:text="Clicca sul button in basso per avviare l'indicizzazione"
         android:textStyle="bold"
-        android:layout_marginTop="22dp"
+        android:layout_marginTop="44dp"
         android:layout_below="@+id/progressIstogramma"
-        android:layout_alignStart="@+id/pesoIstogramma" />
+        android:layout_alignParentStart="true" />
 
     <TextView
         android:id="@+id/pesoIstogramma"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Istogramma"
-        android:layout_below="@+id/groupDescrittoreIstogramma"
+        android:layout_alignTop="@+id/pesoDescrittori"
         android:layout_toStartOf="@+id/pesoDescrittori" />
 
     <TextView
-        android:id="@+id/pesoLBP"
+        android:id="@+id/pesoORB"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignStart="@+id/insert_query_image_button"
-        android:layout_below="@+id/groupDescrittoreIstogramma"
-        android:text="Orb" />
+        android:text="Orb"
+        android:layout_below="@+id/imagesList"
+        android:layout_toEndOf="@+id/pesoDescrittori"
+        android:layout_marginTop="52dp" />
 
     <TextView
         android:id="@+id/progressIstogramma"
@@ -135,12 +97,30 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
         android:layout_marginEnd="16dp" />
 
     <TextView
-        android:id="@+id/progressLBP"
+        android:id="@+id/progressORB"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="20dp"
         android:text="50%"
-        android:layout_below="@+id/pesoLBP"
-        android:layout_alignStart="@+id/pesoLBP" />
+        android:layout_below="@+id/pesoORB"
+        android:layout_alignStart="@+id/pesoORB" />
+
+    <ProgressBar
+        android:id="@+id/progressIndicizzazione"
+        style="@android:style/Widget.Material.ProgressBar.Horizontal"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_toEndOf="@+id/progressIstogramma"
+        android:progress="10"/>
+
+    <TextView
+        android:id="@+id/attendere"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Indicizzazione in corso, attendere..."
+        android:layout_below="@+id/progressIndicizzazione"
+        android:layout_alignEnd="@+id/progressIndicizzazione"
+        android:layout_marginTop="12dp" />
 
 </RelativeLayout>
