@@ -138,7 +138,7 @@ public class Cbir extends AppCompatActivity {
     private TextView attendere;
 
     // Peso delle features nella computazione
-    private int weightIstogramma ;
+    private int weightIstogramma;
     private int weightOrb;
 
     @Override
@@ -149,9 +149,9 @@ public class Cbir extends AppCompatActivity {
         // Inizializzazione elementi grafici
         scegliDescr = (TextView) findViewById(R.id.scegliDescr);
 
-        weightDescriptorSeekbar=(SeekBar) findViewById(R.id.pesoDescrittori);
-        weightProgressIstogrammaText= (TextView) findViewById(R.id.progressIstogramma);
-        weightProgressORBText=(TextView) findViewById(R.id.progressORB);
+        weightDescriptorSeekbar = (SeekBar) findViewById(R.id.pesoDescrittori);
+        weightProgressIstogrammaText = (TextView) findViewById(R.id.progressIstogramma);
+        weightProgressORBText = (TextView) findViewById(R.id.progressORB);
         progressIndicizzazione = (ProgressBar) findViewById(R.id.progressIndicizzazione);
 
         //Inizializzo ed elimino dall'interfaccia il messaggio di attesa
@@ -171,9 +171,9 @@ public class Cbir extends AppCompatActivity {
         weightOrb = Integer.parseInt(weightProgressORBText.getText().toString().split("%")[0]);
         weightIstogramma = Integer.parseInt(weightProgressIstogrammaText.getText().toString().split("%")[0]);
 
-        if(weightOrb == 0)
+        if (weightOrb == 0)
             tipoDescrittore = TipoDiDescrittore.ISTOGRAMMA;
-        else if(weightOrb == 0)
+        else if (weightOrb == 0)
             tipoDescrittore = TipoDiDescrittore.ISTOGRAMMA;
         else
             tipoDescrittore = TipoDiDescrittore.BOTH;
@@ -182,12 +182,11 @@ public class Cbir extends AppCompatActivity {
         weightDescriptorSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                weightIstogramma=100 - progress;
-                weightOrb=progress;
+                weightIstogramma = 100 - progress;
+                weightOrb = progress;
 
                 weightProgressIstogrammaText.setText(weightIstogramma + "%");
                 weightProgressORBText.setText(weightOrb + "%");
-
 
 
             }
@@ -200,10 +199,10 @@ public class Cbir extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
 
-                if(weightIstogramma == 0)
+                if (weightIstogramma == 0)
                     //Se il peso dell'istogramma è pari a 0, il tipo di descrittore risulterà orb
                     tipoDescrittore = TipoDiDescrittore.ORB;
-                else if(weightOrb == 0)
+                else if (weightOrb == 0)
                     tipoDescrittore = TipoDiDescrittore.ISTOGRAMMA;
                 else
                     tipoDescrittore = TipoDiDescrittore.BOTH;
@@ -233,14 +232,13 @@ public class Cbir extends AppCompatActivity {
             Log.i(TAG, "Permessi già verificati");
 
 
-
             //Una volta premuto il floating action button, devo avviare l'indicizzazione
             insertQueryImageFAB = (FloatingActionButton) findViewById(R.id.insert_query_image_button);
             insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
-                @Override
+                    @Override
                 public void onClick(View view) {
-                    //Elimino dall'interfaccia il floating action button
-                    insertQueryImageFAB.setVisibility(View.GONE);
+                    //cambio icona al floating action button
+                    insertQueryImageFAB.setImageResource(R.drawable.delete2);
 
                     //Devo recuperare tutti gli Uri delle immagini presenti in galleria
                     listaPercorsiImmagini = new ArrayList<>();
@@ -256,14 +254,14 @@ public class Cbir extends AppCompatActivity {
                     instructions.setVisibility(View.GONE);
 
                     // Utilizzo un thread per limitare il carico di lavoro sul thread principale
-                    Thread thread = new Thread(){
+                    Thread thread = new Thread() {
                         @Override
                         public void run() {
-                                indicizza(listaPercorsiImmagini);
+                            indicizza(listaPercorsiImmagini);
 
                             Log.i(TAG, "Tipo di descrittore " + tipoDescrittore + " dimensione immagini analizzate " + immaginiAnalizzate.size());
 
-                            //Creo un intent per aprire la galleria e selezionare un immagine da anlizzare
+                            //Creo un intent per aprire la galleria e selezionare un'immagine da anlizzare
                             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
                             //Avvio l'activity per ricevere risultati
@@ -277,9 +275,19 @@ public class Cbir extends AppCompatActivity {
 
                     thread.start();
 
+                    insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            // Codice per riavvio applicazione
+                            Intent i = getBaseContext().getPackageManager()
+                                    .getLaunchIntentForPackage(getBaseContext().getPackageName());
+                            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            startActivity(i);
 
+                        }
 
-                    //VA FATTO IL CONTROLLO SU PRECEDENTI SHAREDPREFERENCE
+                    });
+
 
 
 
@@ -377,13 +385,13 @@ public class Cbir extends AppCompatActivity {
         do {
             //Ora posso recuperare le immagini
             //Recupero solo quelle immagini all'interno della cartella "Foto"
-            if(cursor.getString(columnIndex).contains("/storage/emulated/0/DCIM/Camera/")){
-            listaPercorsiImmagini.add(cursor.getString(columnIndex));
+            if (cursor.getString(columnIndex).contains("/storage/emulated/0/DCIM/Camera/")) {
+                listaPercorsiImmagini.add(cursor.getString(columnIndex));
 
             }
 
 
-        } while(cursor.moveToNext());
+        } while (cursor.moveToNext());
 
 
         return listaPercorsiImmagini;
@@ -398,7 +406,7 @@ public class Cbir extends AppCompatActivity {
         // Vettore di features estratte con l'istogramma di colore, nel caso in cui tipoDescrittore = HIST
         String[] features_Ist_Only;
         //Vettore di features estratte con l'istogramma di colore, nel caso in cui tipoDescrittore = BOTH
-        String[]features_Ist_Both;
+        String[] features_Ist_Both;
         // Immagine da indicizzare con tipoDescrittore = BOTH
         Mat immagineDaIndicizzare;
         // Immagine da indicizzare con tipoDescrittore = HIST
@@ -413,7 +421,6 @@ public class Cbir extends AppCompatActivity {
         editor.clear();
 
 
-
         for (int i = 0; i < percorsoImmagini.size(); i++) {
 
             // Incremento la progress bar di una unità
@@ -425,13 +432,12 @@ public class Cbir extends AppCompatActivity {
             if (Imgcodecs.imread(percorsoImmagine).channels() == 3) {
 
 
-
                 //Arrayset da salvare nel shared preference
                 listaFeatures = new ArraySet<>();
 
                 //L'utente sceglie solo l'istogramma come descrittore
                 if (tipoDescrittore.equals(TipoDiDescrittore.ISTOGRAMMA)) {
-                    Log.i(TAG,"Calcolo features con istogramma di colore");
+                    Log.i(TAG, "Calcolo features con istogramma di colore");
 
                     immagineDaIndicizzare = caricaImmagineIst(percorsoImmagine);
                     features_Ist_Only = new String[TOTAL_DIMENSION_WITH_HIST];
@@ -450,7 +456,7 @@ public class Cbir extends AppCompatActivity {
 
                 //L'utente sceglie solo il local binary pattern come descrittore
                 else if (tipoDescrittore.equals(TipoDiDescrittore.ORB)) {
-                    Log.i(TAG,"Calcolo features con ORB");
+                    Log.i(TAG, "Calcolo features con ORB");
 
                     immagineDaIndicizzare = caricaImmagineOrb(percorsoImmagine);
 
@@ -463,8 +469,8 @@ public class Cbir extends AppCompatActivity {
 
                 //L'utente sceglie entrambi i descrittori
                 else if (tipoDescrittore.equals(TipoDiDescrittore.BOTH)) {
-                    Log.i(TAG,"Calcolo features con istogramma di colore e con Orb");
-                    Log.i(TAG,"Peso ORB " + weightOrb + " Peso Istogramma " + weightIstogramma);
+                    Log.i(TAG, "Calcolo features con istogramma di colore e con Orb");
+                    Log.i(TAG, "Peso ORB " + weightOrb + " Peso Istogramma " + weightIstogramma);
 
                     //Calcolo Istogramma di colore
                     immagineDaIndicizzare_Ist = caricaImmagineIst(percorsoImmagine);
@@ -479,7 +485,6 @@ public class Cbir extends AppCompatActivity {
                     }
 
 
-
                     //Sto salvando il vettore di features nel shared preference
                     editor.putStringSet(percorsoImmagine, listaFeatures);
 
@@ -491,7 +496,6 @@ public class Cbir extends AppCompatActivity {
 
 
                 }
-
 
 
             } else {
@@ -520,11 +524,10 @@ public class Cbir extends AppCompatActivity {
 
     }
 
-    private Mat caricaImmagineOrb(String uri){
+    private Mat caricaImmagineOrb(String uri) {
         Mat immagineOriginale = Imgcodecs.imread(uri);
 
         return immagineOriginale;
-
 
 
     }
@@ -543,7 +546,7 @@ public class Cbir extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         //ArrayList delle immagini da mostrare
-         ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
+        ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
 
         if (resultCode == RESULT_OK) {
             if (requestCode == SELECT_PICTURE) {
@@ -567,14 +570,14 @@ public class Cbir extends AppCompatActivity {
                     imagePath = cursor.getString(columnIndex);
 
                     //Inizializzo il comparatore
-                    comparatore = new Comparatore(listaPercorsiImmagini, preference,immaginiAnalizzate);
+                    comparatore = new Comparatore(listaPercorsiImmagini, preference, immaginiAnalizzate);
 
                     // Questo oggetto contiene gli elementi di input necessari all'handler
-                    InputBackgroundTask input = new InputBackgroundTask(imagePath,comparatore);
+                    InputBackgroundTask input = new InputBackgroundTask(imagePath, comparatore);
 
-                    Log.i(TAG,"Tipo di descrittore" + tipoDescrittore.toString());
+                    Log.i(TAG, "Tipo di descrittore" + tipoDescrittore.toString());
 
-                    Log.i(TAG, "Numero immagini analizzate "+ immaginiAnalizzate.size());
+                    Log.i(TAG, "Numero immagini analizzate " + immaginiAnalizzate.size());
 
                     /*if (tipoDescrittore.equals(TipoDiDescrittore.ISTOGRAMMA)){
                         //Ho recuperato l'immagine da analizzare e da confrontare
@@ -658,6 +661,9 @@ public class Cbir extends AppCompatActivity {
             progressIndicizzazione.setVisibility(View.GONE);
             attendere.setVisibility(View.GONE);
 
+            insertQueryImageFAB.setVisibility(View.VISIBLE);
+            insertQueryImageFAB.setImageResource(R.drawable.goback2);
+
 
             //Creo l'arrayListi di immagini da mostrare con i 5 migliori risultati
 
@@ -671,13 +677,26 @@ public class Cbir extends AppCompatActivity {
             adapter = new ImmaginiDaMostrareAdapter(this, immaginiDaMostrare_arrayList);
 
             mostraImmagini.setAdapter(adapter);
+
+            insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    // Codice per riavvio applicazione
+                    Intent i = getBaseContext().getPackageManager()
+                            .getLaunchIntentForPackage(getBaseContext().getPackageName());
+                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(i);
+
+
+                }
+
+            });
         }
 
     }
 
 
-
-    private class BackgroundTask extends AsyncTask<InputBackgroundTask, Integer, ArrayList<ImmagineDaMostrare>>{
+    private class BackgroundTask extends AsyncTask<InputBackgroundTask, Integer, ArrayList<ImmagineDaMostrare>> {
 
         @Override
         protected void onPreExecute() {
@@ -687,43 +706,39 @@ public class Cbir extends AppCompatActivity {
             weightDescriptorSeekbar.setEnabled(false);
 
             attendere.setText("Comparazione immagini in corso, attendere...");
-            attendere.setPadding(250,0,0,0);
+            attendere.setPadding(250, 0, 0, 0);
             progressIndicizzazione.setIndeterminate(true);
         }
 
         @Override
-        protected ArrayList<ImmagineDaMostrare> doInBackground(InputBackgroundTask... values){
+        protected ArrayList<ImmagineDaMostrare> doInBackground(InputBackgroundTask... values) {
             ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
 
             Comparatore comparatore = values[0].getComparatore();
             String imagePath = values[0].getImagePath();
 
-            if (tipoDescrittore.equals(TipoDiDescrittore.ISTOGRAMMA)){
+            if (tipoDescrittore.equals(TipoDiDescrittore.ISTOGRAMMA)) {
                 //Ho recuperato l'immagine da analizzare e da confrontare
                 Mat queryImage = caricaImmagineIst(imagePath);
                 //Ora passo quell'immagine a un metodo che esegua il confronto
                 immaginiDaMostrare = comparatore.calcolaDistanzaIst(queryImage);
 
-            }
-            else if(tipoDescrittore.equals(TipoDiDescrittore.ORB)){
+            } else if (tipoDescrittore.equals(TipoDiDescrittore.ORB)) {
                 //Ho recuperato l'immagine da analizzare e da confrontare
                 Mat queryImage = caricaImmagineOrb(imagePath);
 
                 immaginiDaMostrare = comparatore.calcolaDistanzaOrb(queryImage);
 
 
-
-            }
-            else if(tipoDescrittore.equals(TipoDiDescrittore.BOTH)){
+            } else if (tipoDescrittore.equals(TipoDiDescrittore.BOTH)) {
                 // Ho recuperato l'immagine da analizzare e confrontare
                 Mat queryImage_Ist = caricaImmagineIst(imagePath);
                 Mat queryImage_Orb = caricaImmagineOrb(imagePath);
 
-                float pesoIst = (float) weightIstogramma/100;
-                float pesoOrb = (float) weightOrb/100;
+                float pesoIst = (float) weightIstogramma / 100;
+                float pesoOrb = (float) weightOrb / 100;
 
-                immaginiDaMostrare = comparatore.calcolaDistanzaBoth(queryImage_Ist,queryImage_Orb,pesoIst,pesoOrb);
-
+                immaginiDaMostrare = comparatore.calcolaDistanzaBoth(queryImage_Ist, queryImage_Orb, pesoIst, pesoOrb);
 
 
             }
@@ -733,12 +748,12 @@ public class Cbir extends AppCompatActivity {
         }
 
         @Override
-        protected void onProgressUpdate(Integer... values){
+        protected void onProgressUpdate(Integer... values) {
             super.onProgressUpdate();
         }
 
         @Override
-        protected void onPostExecute(ArrayList<ImmagineDaMostrare> immaginiDaMostrare){
+        protected void onPostExecute(ArrayList<ImmagineDaMostrare> immaginiDaMostrare) {
             super.onPostExecute(immaginiDaMostrare);
 
             visualizzaRisulatato(immaginiDaMostrare);

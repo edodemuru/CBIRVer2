@@ -3,4 +3,5 @@
     <string name="insert_query_image_button_text">Scegli Immagine</string>
     <item type="id" name="istogramma"></item>
     <item type="id" name="insert_query_image_text_view"></item>
+    <item type="id" name="immagineAnnulla" src=""></item>
 </resources>
