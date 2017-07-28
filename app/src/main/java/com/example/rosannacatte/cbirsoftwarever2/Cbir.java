@@ -171,8 +171,8 @@ public class Cbir extends AppCompatActivity {
         weightOrb = Integer.parseInt(weightProgressORBText.getText().toString().split("%")[0]);
         weightIstogramma = Integer.parseInt(weightProgressIstogrammaText.getText().toString().split("%")[0]);
 
-        if (weightOrb == 0)
-            tipoDescrittore = TipoDiDescrittore.ISTOGRAMMA;
+        if (weightIstogramma == 0)
+            tipoDescrittore = TipoDiDescrittore.ORB;
         else if (weightOrb == 0)
             tipoDescrittore = TipoDiDescrittore.ISTOGRAMMA;
         else
@@ -575,42 +575,9 @@ public class Cbir extends AppCompatActivity {
                     // Questo oggetto contiene gli elementi di input necessari all'handler
                     InputBackgroundTask input = new InputBackgroundTask(imagePath, comparatore);
 
-                    Log.i(TAG, "Tipo di descrittore" + tipoDescrittore.toString());
+                    Log.i(TAG, "Tipo di descrittore " + tipoDescrittore.toString());
 
                     Log.i(TAG, "Numero immagini analizzate " + immaginiAnalizzate.size());
-
-                    /*if (tipoDescrittore.equals(TipoDiDescrittore.ISTOGRAMMA)){
-                        //Ho recuperato l'immagine da analizzare e da confrontare
-                       Mat queryImage = caricaImmagineIst(imagePath);
-                        //Ora passo quell'immagine a un metodo che esegua il confronto
-                        immaginiDaMostrare = comparatore.calcolaDistanzaIst(queryImage);
-
-                    }
-                    else if(tipoDescrittore.equals(TipoDiDescrittore.ORB)){
-                        //Ho recuperato l'immagine da analizzare e da confrontare
-                        Mat queryImage = caricaImmagineOrb(imagePath);
-
-                        immaginiDaMostrare = comparatore.calcolaDistanzaOrb(queryImage);
-
-
-
-                    }
-                    else if(tipoDescrittore.equals(TipoDiDescrittore.BOTH)){
-                        // Ho recuperato l'immagine da analizzare e confrontare
-                        Mat queryImage_Ist = caricaImmagineIst(imagePath);
-                        Mat queryImage_Orb = caricaImmagineOrb(imagePath);
-
-                        float pesoIst = (float) weightIstogramma/100;
-                        float pesoOrb = (float) weightOrb/100;
-
-
-                        immaginiDaMostrare = comparatore.calcolaDistanzaBoth(queryImage_Ist,queryImage_Orb,pesoIst,pesoOrb);
-
-
-
-                    }
-
-                    visualizzaRisulatato(immaginiDaMostrare);*/
 
                     //Eseguo l'handler
                     new BackgroundTask().execute(input);

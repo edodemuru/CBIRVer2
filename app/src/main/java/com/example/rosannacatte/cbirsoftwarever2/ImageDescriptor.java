@@ -62,15 +62,7 @@ public class ImageDescriptor {
             new MatOfFloat(0f, 180f, 0f, 256f),
             new MatOfFloat(0f, 256f, 0f, 256f)
     };
-
-
-    //COSTRUTTORE
-    /*
-    public ImageDescriptor(MatOfInt mNumberBins, MatOfInt mChannels, MatOfFloat mRange){
-        this.mNumberBins = mNumberBins;
-        this.mChannels = mChannels;
-        this.mRange = mRange;
-    }*/
+    
 
 
     //METODI ISTOGRAMMA DI COLORE
