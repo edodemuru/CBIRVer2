@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -141,6 +142,9 @@ public class Cbir extends AppCompatActivity {
     private int weightIstogramma;
     private int weightOrb;
 
+    //Variabile per bloccare l'indicizzazione nel caso in cui l'applicazione venga riavviata
+    private boolean stopIndicizzazione = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -235,7 +239,7 @@ public class Cbir extends AppCompatActivity {
             //Una volta premuto il floating action button, devo avviare l'indicizzazione
             insertQueryImageFAB = (FloatingActionButton) findViewById(R.id.insert_query_image_button);
             insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
-                    @Override
+                @Override
                 public void onClick(View view) {
                     //cambio icona al floating action button
                     insertQueryImageFAB.setImageResource(R.drawable.delete2);
@@ -253,19 +257,30 @@ public class Cbir extends AppCompatActivity {
 
                     instructions.setVisibility(View.GONE);
 
+                    stopIndicizzazione = false;
+
                     // Utilizzo un thread per limitare il carico di lavoro sul thread principale
                     Thread thread = new Thread() {
                         @Override
                         public void run() {
                             indicizza(listaPercorsiImmagini);
 
-                            Log.i(TAG, "Tipo di descrittore " + tipoDescrittore + " dimensione immagini analizzate " + immaginiAnalizzate.size());
 
-                            //Creo un intent per aprire la galleria e selezionare un'immagine da anlizzare
-                            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                            if (!stopIndicizzazione) {
 
-                            //Avvio l'activity per ricevere risultati
-                            startActivityForResult(intent, SELECT_PICTURE);
+                                Log.i(TAG, "Tipo di descrittore " + tipoDescrittore + " dimensione immagini analizzate " + immaginiAnalizzate.size());
+                                //Creo un intent per aprire la galleria e selezionare un'immagine da anlizzare
+                                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+                                //Avvio l'activity per ricevere risultati
+                                startActivityForResult(intent, SELECT_PICTURE);
+                            } else {
+                                // Se l'applicazione viene riavviata devo eliminare gli elementi memorizzati nell'arrayList
+                                immaginiAnalizzate = new ArrayList<ImmagineOrb>();
+                                stopIndicizzazione = false;
+
+
+                            }
 
 
                         }
@@ -278,6 +293,7 @@ public class Cbir extends AppCompatActivity {
                     insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
+                            stopIndicizzazione = true;
                             // Codice per riavvio applicazione
                             Intent i = getBaseContext().getPackageManager()
                                     .getLaunchIntentForPackage(getBaseContext().getPackageName());
@@ -287,8 +303,6 @@ public class Cbir extends AppCompatActivity {
                         }
 
                     });
-
-
 
 
                 }
@@ -421,7 +435,7 @@ public class Cbir extends AppCompatActivity {
         editor.clear();
 
 
-        for (int i = 0; i < percorsoImmagini.size(); i++) {
+        for (int i = 0; i < percorsoImmagini.size() && !stopIndicizzazione; i++) {
 
             // Incremento la progress bar di una unità
             progressIndicizzazione.incrementProgressBy(1);
@@ -506,8 +520,10 @@ public class Cbir extends AppCompatActivity {
         }
 
 
-        //Completo il salvataggio e l'indicizzazione
-        editor.commit();
+        if (!stopIndicizzazione) {
+            //Completo il salvataggio e l'indicizzazione
+            editor.commit();
+        }
 
     }
 
