@@ -43,6 +43,8 @@ public class Comparatore {
 
     private ArrayList<ImmagineOrb> immaginiAnalizzate = new ArrayList<>();
 
+    private boolean stopComparazione;
+
 
     //COSTRUTTORE
     public Comparatore(ArrayList<String> listaPercorsoImmagini, SharedPreferences preferences, ArrayList<ImmagineOrb> immaginiAnalizzate) {
@@ -50,6 +52,7 @@ public class Comparatore {
         this.listaPercorsoImmagini = listaPercorsoImmagini;
         this.preferences = preferences;
         this.immaginiAnalizzate = immaginiAnalizzate;
+        this.stopComparazione = false;
     }
 
 
@@ -65,7 +68,7 @@ public class Comparatore {
         ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
 
         //Adesso devo fare il confronto tra le features dell'immagine di query e le features delle immagini contenute nel dispositivo
-        for (int i = 0; i < getListaPercorsoImmagini().size(); i++) {
+        for (int i = 0; i < getListaPercorsoImmagini().size() && !stopComparazione; i++) {
 
             String currentImage = getListaPercorsoImmagini().get(i);
 
@@ -83,7 +86,6 @@ public class Comparatore {
 
                 //Calcolo la distanza tra i due vettori
                 int currentDistanza = distanza(valoriFeaturesQuery, valoriFeaturesSavedImage);
-
 
 
                 if (currentDistanza == 0) {
@@ -108,7 +110,10 @@ public class Comparatore {
         //Ho popolato la mappa di valori. Devo restituire l'arrayList di URI delle immagini da mostrare
 
 
-        return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+        if (!this.stopComparazione)
+            return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+        else
+            return null;
     }
 
     //Calcolo distanza tra query image e immagini indicizzate con algoritmo orb
@@ -120,7 +125,7 @@ public class Comparatore {
         //Elenco percorso immagini da mostrare
         ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
 
-        for (int i = 0; i < immaginiAnalizzate.size(); i++) {
+        for (int i = 0; i < immaginiAnalizzate.size() && !stopComparazione; i++) {
 
             Mat descriptorsImage = immaginiAnalizzate.get(i).getDescriptors();
             MatOfKeyPoint keypointsImage = immaginiAnalizzate.get(i).getKeypoints();
@@ -153,13 +158,13 @@ public class Comparatore {
 
             // Il calcolo della distanza tra le due immagini viene fatto come #good_matches / #all_matches
 
-            float distanza = good_matches_size_float/matches_size_float;
+            float distanza = good_matches_size_float / matches_size_float;
             distanza = 1 - distanza;
 
-            Log.i(TAG,"Distanza " + distanza);
-            if(distanza == 0) {
+            Log.i(TAG, "Distanza " + distanza);
+            if (distanza == 0) {
 
-            }else{
+            } else {
                 //Imposto la distanza calcolata con orb, e quella calcolata con l'istogramma la imposto a -1
                 ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(immaginiAnalizzate.get(i).getPath());
                 immagineDaMostrare.setDistanzaOrb(distanza);
@@ -177,11 +182,14 @@ public class Comparatore {
         // A questo punto restituisco l'arraylist all'interno
         // del quale le immagini saranno ordinate sulla base della distanza
 
-        return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+        if (!this.stopComparazione)
+            return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+        else
+            return null;
 
     }
 
-    public ArrayList<ImmagineDaMostrare> calcolaDistanzaBoth(Mat queryImageIst, Mat queryImageOrb, float pesoIst, float pesoOrb){
+    public ArrayList<ImmagineDaMostrare> calcolaDistanzaBoth(Mat queryImageIst, Mat queryImageOrb, float pesoIst, float pesoOrb) {
 
 
         //Calcolo distanza Istogramma
@@ -193,7 +201,7 @@ public class Comparatore {
         ArrayList<ImmagineDaMostrare> listaPercorsoImmaginiDaMostrare = new ArrayList<>();
 
         //Adesso devo fare il confronto tra le features dell'immagine di query e le features delle immagini contenute nel dispositivo
-        for (int i = 0; i < getListaPercorsoImmagini().size(); i++) {
+        for (int i = 0; i < getListaPercorsoImmagini().size() && !stopComparazione; i++) {
 
             String currentImage = getListaPercorsoImmagini().get(i);
 
@@ -203,30 +211,31 @@ public class Comparatore {
                 Set<String> setFeatures = preferences.getStringSet(currentImage, null);
 
 
-                //Converto il set di stringhe in un array
-                String[] arrayFeatures = setToArray(setFeatures);
+                if (setFeatures != null) {
+                    //Converto il set di stringhe in un array
+                    String[] arrayFeatures = setToArray(setFeatures);
 
-                //Ottengo i valori delle features salvate nello shared preference
-                int[] valoriFeaturesSavedImage = recuperaValoreFeaturesHist(arrayFeatures);
+                    //Ottengo i valori delle features salvate nello shared preference
+                    int[] valoriFeaturesSavedImage = recuperaValoreFeaturesHist(arrayFeatures);
 
-                //Calcolo la distanza tra i due vettori
-                int currentDistanza = distanza(valoriFeaturesQueryIst, valoriFeaturesSavedImage);
+                    //Calcolo la distanza tra i due vettori
+                    int currentDistanza = distanza(valoriFeaturesQueryIst, valoriFeaturesSavedImage);
 
-                Log.i(TAG,"Distanza Ist " + currentDistanza);
+                    Log.i(TAG, "Distanza Ist " + currentDistanza);
 
 
-                if (currentDistanza == 0) {
-                    //In questo caso l'immagine è identica, non la mostro di nuovo
+                    if (currentDistanza == 0) {
+                        //In questo caso l'immagine è identica, non la mostro di nuovo
 
-                } else {
+                    } else {
 
-                    // Imposto la distanza calcolata con l'istogramma, mentre quella relativa all'algoritmo orb a -1
-                    ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(currentImage);
-                    immagineDaMostrare.setDistanzaIst(currentDistanza);
+                        // Imposto la distanza calcolata con l'istogramma, mentre quella relativa all'algoritmo orb a -1
+                        ImmagineDaMostrare immagineDaMostrare = new ImmagineDaMostrare(currentImage);
+                        immagineDaMostrare.setDistanzaIst(currentDistanza);
 
-                    listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
+                        listaPercorsoImmaginiDaMostrare.add(immagineDaMostrare);
+                    }
                 }
-
 
 
             }
@@ -239,7 +248,7 @@ public class Comparatore {
         ImmagineOrb valoriFeaturesQueryOrb = imageDescriptor.calculateOrb(queryImageOrb);
 
 
-        for (int i = 0; i < immaginiAnalizzate.size(); i++) {
+        for (int i = 0; i < immaginiAnalizzate.size() && !stopComparazione; i++) {
 
             Mat descriptorsImage = immaginiAnalizzate.get(i).getDescriptors();
             MatOfKeyPoint keypointsImage = immaginiAnalizzate.get(i).getKeypoints();
@@ -276,17 +285,17 @@ public class Comparatore {
 
             // Il calcolo della distanza tra le due immagini viene fatto come #good_matches / #all_matches
 
-            float distanza = good_matches_size_float/matches_size_float;
+            float distanza = good_matches_size_float / matches_size_float;
             distanza = 1 - distanza;
 
-            Log.i(TAG,"Distanza Orb " + distanza);
-            if(distanza == 0) {
+            Log.i(TAG, "Distanza Orb " + distanza);
+            if (distanza == 0) {
 
-            }else{
+            } else {
                 //Imposto la distanza calcolata con orb
 
-                for(ImmagineDaMostrare immagine : listaPercorsoImmaginiDaMostrare){
-                    if(immagine.getPercorsoImmagine().equals(immaginiAnalizzate.get(i).getPath())){
+                for (ImmagineDaMostrare immagine : listaPercorsoImmaginiDaMostrare) {
+                    if (immagine.getPercorsoImmagine().equals(immaginiAnalizzate.get(i).getPath())) {
                         immagine.setDistanzaOrb(distanza);
 
 
@@ -301,16 +310,17 @@ public class Comparatore {
 
         }
 
-        listaPercorsoImmaginiDaMostrare= normalizzaMinMax(listaPercorsoImmaginiDaMostrare);
-        listaPercorsoImmaginiDaMostrare = mediaPesata(listaPercorsoImmaginiDaMostrare,pesoIst,pesoOrb);
+        if (!this.stopComparazione) {
+            listaPercorsoImmaginiDaMostrare = normalizzaMinMax(listaPercorsoImmaginiDaMostrare);
+            listaPercorsoImmaginiDaMostrare = mediaPesata(listaPercorsoImmaginiDaMostrare, pesoIst, pesoOrb);
 
 
-        return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
-
+            return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+        } else
+            return null;
 
 
     }
-
 
 
     //Metodo che recupera un vettore di interi da un vettore di stringhe
@@ -475,7 +485,7 @@ public class Comparatore {
     private ArrayList<ImmagineDaMostrare> ordinaArrayList(ArrayList<ImmagineDaMostrare> arrayList) {
 
         // Se entrambi i valori di distanza sono diversi da -1
-        if(arrayList.get(0).getDistanzaBoth() != -1){
+        if (arrayList.get(0).getDistanzaBoth() != -1) {
 
             // Ordino l'arrayList basandomi sulla distanza id entrambi i descrittori
             for (int i = 0; i < arrayList.size() - 1; i++) {
@@ -500,7 +510,7 @@ public class Comparatore {
 
         }
 
-        if (arrayList.get(0).getDistanzaIst() != -1){
+        if (arrayList.get(0).getDistanzaIst() != -1) {
             // Ordino l'ArrayList basandomi sulla distanza dell'istogramma
 
             for (int i = 0; i < arrayList.size() - 1; i++) {
@@ -521,9 +531,8 @@ public class Comparatore {
                 }
             }
 
-        return arrayList;
-    }
-        else{
+            return arrayList;
+        } else {
             //Ordino le distanze dell'ArrayList basandomi sull'algoritmo Orb
             for (int i = 0; i < arrayList.size() - 1; i++) {
                 for (int j = 0; j < arrayList.size() - i - 1; j++) {
@@ -546,14 +555,13 @@ public class Comparatore {
             return arrayList;
 
 
-
         }
 
     }
 
-    private ArrayList<ImmagineDaMostrare> mediaPesata(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare, float pesoIst, float pesoOrb){
-        for (ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare){
-            float mediaPesata = (immagine.getDistanzaIst()* pesoIst) + (immagine.getDistanzaOrb()*pesoOrb);
+    private ArrayList<ImmagineDaMostrare> mediaPesata(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare, float pesoIst, float pesoOrb) {
+        for (ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare) {
+            float mediaPesata = (immagine.getDistanzaIst() * pesoIst) + (immagine.getDistanzaOrb() * pesoOrb);
             immagine.setDistanzaBoth(mediaPesata);
 
         }
@@ -562,18 +570,18 @@ public class Comparatore {
     }
 
     // Questo metodo calcola la normalizzazione min max delle distanza calcolate prima con l'istogramma, poi con Orb
-    private ArrayList<ImmagineDaMostrare> normalizzaMinMax(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare){
+    private ArrayList<ImmagineDaMostrare> normalizzaMinMax(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare) {
         float[] minMax = ottieniMinMax(listaPercorsiImmaginiDaMostrare);
         float normIst;
         float normOrb;
 
-        for(ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare){
+        for (ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare) {
             normIst = ((immagine.getDistanzaIst() - minMax[1]) / (minMax[0] - minMax[1]));
-            Log.i(TAG,"Distanza istogramma normalizzato " + normIst);
+            Log.i(TAG, "Distanza istogramma normalizzato " + normIst);
             immagine.setDistanzaIst(normIst);
 
             normOrb = ((immagine.getDistanzaOrb() - minMax[3]) / (minMax[2] - minMax[3]));
-            Log.i(TAG,"Distanza Orb normalizzato " + normOrb);
+            Log.i(TAG, "Distanza Orb normalizzato " + normOrb);
             immagine.setDistanzaOrb(normOrb);
 
         }
@@ -585,7 +593,7 @@ public class Comparatore {
 
 
     // Metodo che si occupa di ottenere i valori massimi e minimi delle distanze calcolate, sia con l'istogramma che con ORB
-    private float[] ottieniMinMax(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare){
+    private float[] ottieniMinMax(ArrayList<ImmagineDaMostrare> listaPercorsiImmaginiDaMostrare) {
         float maxIst = Float.NEGATIVE_INFINITY;
         float minIst = Float.POSITIVE_INFINITY;
 
@@ -594,17 +602,17 @@ public class Comparatore {
 
         float[] result = new float[4];
 
-        for(ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare){
-            if(immagine.getDistanzaIst()>maxIst)
+        for (ImmagineDaMostrare immagine : listaPercorsiImmaginiDaMostrare) {
+            if (immagine.getDistanzaIst() > maxIst)
                 maxIst = immagine.getDistanzaIst();
 
-            if(immagine.getDistanzaIst()<minIst)
+            if (immagine.getDistanzaIst() < minIst)
                 minIst = immagine.getDistanzaIst();
 
-            if(immagine.getDistanzaOrb()>maxOrb)
+            if (immagine.getDistanzaOrb() > maxOrb)
                 maxOrb = immagine.getDistanzaOrb();
 
-            if(immagine.getDistanzaOrb()< minOrb)
+            if (immagine.getDistanzaOrb() < minOrb)
                 minOrb = immagine.getDistanzaOrb();
 
         }
@@ -623,4 +631,9 @@ public class Comparatore {
     public ArrayList<String> getListaPercorsoImmagini() {
         return listaPercorsoImmagini;
     }
+
+    public void bloccaComparazione() {
+        stopComparazione = true;
+    }
+
 }

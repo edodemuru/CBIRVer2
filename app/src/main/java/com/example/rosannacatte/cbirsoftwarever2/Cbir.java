@@ -60,6 +60,8 @@ public class Cbir extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 200;
 
+    private static final String IMAGESPATH = "/storage/emulated/0/DCIM/Camera/";
+
 
     //Quale descrittore viene utilizzato?
     private enum TipoDiDescrittore {
@@ -69,10 +71,6 @@ public class Cbir extends AppCompatActivity {
 
 
     private static TipoDiDescrittore tipoDescrittore;
-
-
-    // Numero di immagini escluse dal calcolo delle features
-    public int immagini_Escluse = 0;
 
     //Mi serve un vettore di stringhe per il salvataggio degli URI delle immagini, non so a priori quanto sarà grande dunque uso un arrayList
     private ArrayList<String> listaPercorsiImmagini;
@@ -142,8 +140,9 @@ public class Cbir extends AppCompatActivity {
     private int weightIstogramma;
     private int weightOrb;
 
-    //Variabile per bloccare l'indicizzazione nel caso in cui l'applicazione venga riavviata
-    private boolean stopIndicizzazione = false;
+    //Flag per bloccare l'indicizzazione e la comparazione nel caso in cui l'applicazione venga riavviata
+    private boolean stopIndicizzazione;
+    public boolean stopComparazione;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -277,7 +276,7 @@ public class Cbir extends AppCompatActivity {
                             } else {
                                 // Se l'applicazione viene riavviata devo eliminare gli elementi memorizzati nell'arrayList
                                 immaginiAnalizzate = new ArrayList<ImmagineOrb>();
-                                stopIndicizzazione = false;
+                                //stopIndicizzazione = false;
 
 
                             }
@@ -293,11 +292,12 @@ public class Cbir extends AppCompatActivity {
                     insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            stopIndicizzazione = true;
                             // Codice per riavvio applicazione
                             Intent i = getBaseContext().getPackageManager()
                                     .getLaunchIntentForPackage(getBaseContext().getPackageName());
                             i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            finish();
                             startActivity(i);
 
                         }
@@ -315,6 +315,48 @@ public class Cbir extends AppCompatActivity {
 
 
         }
+
+
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.i(TAG, "Richiamato onDestroy");
+
+        // Flag per blocco indicizzazione
+        stopIndicizzazione = true;
+        stopComparazione = true;
+
+        // Se il sistema è in fase di comparazione dei risultati, blocco la comparazione
+        if (comparatore != null)
+            comparatore.bloccaComparazione();
+
+        // Eliminazione dati presenti nello shared Preference
+        editor.clear();
+        editor.commit();
+
+        // Attivazione garbage collector
+        System.gc();
+
+        // Per liberare parte della memoria del sistema, imposto a null alcuni degli oggetti utilizzati durante l'esecuzione del codice
+        scegliDescr = null;
+        insertQueryImageFAB = null;
+        textView= null ;
+        sadSmileImage = null;
+        weightDescriptorSeekbar = null;
+        weightProgressIstogrammaText = null;
+        weightProgressORBText = null;
+        instructions = null;
+        progressIndicizzazione = null;
+        attendere = null;
+        listaPercorsiImmagini = null;
+        preference = null;
+        //editor = null;
+        imageDescriptor = null;
+        comparatore = null;
+        //immaginiAnalizzate = null;
+
 
 
     }
@@ -399,7 +441,7 @@ public class Cbir extends AppCompatActivity {
         do {
             //Ora posso recuperare le immagini
             //Recupero solo quelle immagini all'interno della cartella "Foto"
-            if (cursor.getString(columnIndex).contains("/storage/emulated/0/DCIM/Camera/")) {
+            if (cursor.getString(columnIndex).contains(IMAGESPATH)) {
                 listaPercorsiImmagini.add(cursor.getString(columnIndex));
 
             }
@@ -437,6 +479,7 @@ public class Cbir extends AppCompatActivity {
 
         for (int i = 0; i < percorsoImmagini.size() && !stopIndicizzazione; i++) {
 
+            Log.i(TAG,"Avvio indicizzazione");
             // Incremento la progress bar di una unità
             progressIndicizzazione.incrementProgressBy(1);
 
@@ -562,10 +605,12 @@ public class Cbir extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         //ArrayList delle immagini da mostrare
-        ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
+        //ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
 
         if (resultCode == RESULT_OK) {
             if (requestCode == SELECT_PICTURE) {
+
+                stopComparazione = false;
 
                 //Recupero l'uri dell'immagine selezionata
                 Uri selectedImageUri = data.getData();
@@ -668,6 +713,8 @@ public class Cbir extends AppCompatActivity {
                     Intent i = getBaseContext().getPackageManager()
                             .getLaunchIntentForPackage(getBaseContext().getPackageName());
                     i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    //i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    finish();
                     startActivity(i);
 
 
@@ -691,6 +738,8 @@ public class Cbir extends AppCompatActivity {
             attendere.setText("Comparazione immagini in corso, attendere...");
             attendere.setPadding(250, 0, 0, 0);
             progressIndicizzazione.setIndeterminate(true);
+
+            stopComparazione = false;
         }
 
         @Override
@@ -739,7 +788,12 @@ public class Cbir extends AppCompatActivity {
         protected void onPostExecute(ArrayList<ImmagineDaMostrare> immaginiDaMostrare) {
             super.onPostExecute(immaginiDaMostrare);
 
-            visualizzaRisulatato(immaginiDaMostrare);
+            if (!stopComparazione) {
+                visualizzaRisulatato(immaginiDaMostrare);
+                immaginiDaMostrare = new ArrayList<>();
+
+            } else
+                Log.i(TAG, "Blocco visualizzazione risultati");
         }
 
 
