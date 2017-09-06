@@ -478,8 +478,7 @@ public class Comparatore {
 
     private int recuperaInt(String stringa) {
         int index = stringa.indexOf("_");
-        int valore = Integer.parseInt(stringa.substring(0, index));
-        return valore;
+        return Integer.parseInt(stringa.substring(0, index));
     }
 
     private ArrayList<ImmagineDaMostrare> ordinaArrayList(ArrayList<ImmagineDaMostrare> arrayList) {

@@ -28,7 +28,7 @@ public class ImmagineDaMostrare {
     public ImmagineDaMostrare(String percorsoImmagine){
         this.percorsoImmagine = percorsoImmagine;
         this.immagineMAT = Imgcodecs.imread(percorsoImmagine);
-        ricavaBitMap();
+        //ricavaBitMap();
         ricavaNomeImmagine();
     }
 
@@ -44,6 +44,12 @@ public class ImmagineDaMostrare {
         immagineMAT = scalaImmagine(immagineMAT);
         immagineBM = Bitmap.createBitmap(immagineMAT.cols(), immagineMAT.rows(),Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(immagineMAT, immagineBM);
+    }
+
+    public void clear(){
+        this.immagineBM.recycle();
+        this.immagineBM = null;
+
     }
 
     //Il seguente metodo serve per scalare l'immagine passata come argomento
@@ -79,6 +85,7 @@ public class ImmagineDaMostrare {
     }
 
     public Bitmap getImmagineBM(){
+        this.ricavaBitMap();
         return this.immagineBM;
     }
 

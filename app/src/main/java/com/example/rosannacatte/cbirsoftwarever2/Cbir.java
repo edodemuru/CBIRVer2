@@ -1,7 +1,11 @@
 package com.example.rosannacatte.cbirsoftwarever2;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.IntentService;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -10,7 +14,11 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.os.Process;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -40,12 +48,14 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.w3c.dom.Text;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 import static android.content.ContentValues.TAG;
 import static android.content.Context.MODE_PRIVATE;
 
 public class Cbir extends AppCompatActivity {
+
 
     //Costante usata per evidenziare i messaggi nel log
     private static final String TAG = "CBIR";
@@ -143,6 +153,17 @@ public class Cbir extends AppCompatActivity {
     //Flag per bloccare l'indicizzazione e la comparazione nel caso in cui l'applicazione venga riavviata
     private boolean stopIndicizzazione;
     public boolean stopComparazione;
+
+    public static ArrayList<ImmagineDaMostrare> immaginiDaVisualizzare;
+
+    Handler mainHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            // Incremento la progress bar di una unità
+            progressIndicizzazione.incrementProgressBy(1);
+
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -262,6 +283,7 @@ public class Cbir extends AppCompatActivity {
                     Thread thread = new Thread() {
                         @Override
                         public void run() {
+                            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
                             indicizza(listaPercorsiImmagini);
 
 
@@ -272,7 +294,8 @@ public class Cbir extends AppCompatActivity {
                                 Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 
                                 //Avvio l'activity per ricevere risultati
-                                startActivityForResult(intent, SELECT_PICTURE);
+                               startActivityForResult(intent, SELECT_PICTURE);
+                                //handlerIntent.sendEmptyMessage(0);
                             } else {
                                 // Se l'applicazione viene riavviata devo eliminare gli elementi memorizzati nell'arrayList
                                 immaginiAnalizzate = new ArrayList<ImmagineOrb>();
@@ -289,16 +312,12 @@ public class Cbir extends AppCompatActivity {
 
                     thread.start();
 
+
                     insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            // Codice per riavvio applicazione
-                            Intent i = getBaseContext().getPackageManager()
-                                    .getLaunchIntentForPackage(getBaseContext().getPackageName());
-                            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            finish();
-                            startActivity(i);
+                            // Riavvio applicazione
+                            restart(getApplicationContext(),0);
 
                         }
 
@@ -334,10 +353,8 @@ public class Cbir extends AppCompatActivity {
 
         // Eliminazione dati presenti nello shared Preference
         editor.clear();
-        editor.commit();
+        editor.apply();
 
-        // Attivazione garbage collector
-        System.gc();
 
         // Per liberare parte della memoria del sistema, imposto a null alcuni degli oggetti utilizzati durante l'esecuzione del codice
         scegliDescr = null;
@@ -350,13 +367,16 @@ public class Cbir extends AppCompatActivity {
         instructions = null;
         progressIndicizzazione = null;
         attendere = null;
-        listaPercorsiImmagini = null;
+        listaPercorsiImmagini= null;
         preference = null;
-        //editor = null;
+        editor = null;
         imageDescriptor = null;
         comparatore = null;
-        //immaginiAnalizzate = null;
+        immaginiAnalizzate=null;
 
+
+        // Attivazione garbage collector
+        System.gc();
 
 
     }
@@ -480,6 +500,7 @@ public class Cbir extends AppCompatActivity {
         for (int i = 0; i < percorsoImmagini.size() && !stopIndicizzazione; i++) {
 
             Log.i(TAG,"Avvio indicizzazione");
+
             // Incremento la progress bar di una unità
             progressIndicizzazione.incrementProgressBy(1);
 
@@ -584,9 +605,8 @@ public class Cbir extends AppCompatActivity {
     }
 
     private Mat caricaImmagineOrb(String uri) {
-        Mat immagineOriginale = Imgcodecs.imread(uri);
 
-        return immagineOriginale;
+        return Imgcodecs.imread(uri);
 
 
     }
@@ -603,9 +623,6 @@ public class Cbir extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
-        //ArrayList delle immagini da mostrare
-        //ArrayList<ImmagineDaMostrare> immaginiDaMostrare = new ArrayList<>();
 
         if (resultCode == RESULT_OK) {
             if (requestCode == SELECT_PICTURE) {
@@ -641,16 +658,14 @@ public class Cbir extends AppCompatActivity {
                     Log.i(TAG, "Numero immagini analizzate " + immaginiAnalizzate.size());
 
                     //Eseguo l'handler
-                    new BackgroundTask().execute(input);
+                     new BackgroundTask().execute(input);
 
 
                 }
-
-
             }
+
+
         }
-
-
     }
 
     public void visualizzaRisulatato(ArrayList<ImmagineDaMostrare> immaginiDaMostrare) {
@@ -693,6 +708,7 @@ public class Cbir extends AppCompatActivity {
             insertQueryImageFAB.setImageResource(R.drawable.goback2);
 
 
+
             //Creo l'arrayListi di immagini da mostrare con i 5 migliori risultati
 
             for (int i = 0; i < 5; i++) {
@@ -709,13 +725,14 @@ public class Cbir extends AppCompatActivity {
             insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    // Codice per riavvio applicazione
-                    Intent i = getBaseContext().getPackageManager()
-                            .getLaunchIntentForPackage(getBaseContext().getPackageName());
-                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    //i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    finish();
-                    startActivity(i);
+                    for(int j = 0; j<5; j++)
+                       immaginiDaMostrare.get(j).clear();
+                    System.gc();
+
+                    adapter.clear();
+                    System.gc();
+
+                    restart(getApplicationContext(),0);
 
 
                 }
@@ -723,7 +740,12 @@ public class Cbir extends AppCompatActivity {
             });
         }
 
+
+
     }
+
+
+
 
 
     private class BackgroundTask extends AsyncTask<InputBackgroundTask, Integer, ArrayList<ImmagineDaMostrare>> {
@@ -798,6 +820,25 @@ public class Cbir extends AppCompatActivity {
 
 
     }
+
+    //Codice per riavvio applicazione
+    public static void restart(Context context, int delay) {
+        if (delay == 0) {
+            delay = 1;
+        }
+        Log.e("", "restarting app");
+        Intent restartIntent = context.getPackageManager()
+                .getLaunchIntentForPackage(context.getPackageName() );
+        PendingIntent intent = PendingIntent.getActivity(
+                context, 0,
+                restartIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+        AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        manager.set(AlarmManager.RTC, System.currentTimeMillis() + delay, intent);
+        System.exit(2);
+    }
+
+
+
 
 
 }

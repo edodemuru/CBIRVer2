@@ -145,10 +145,7 @@ public class ImageDescriptor {
         //Vettore di feature che descrivono l'immagine
         //Usando un istogramma HSV con(8*12*3) salverò 288 valori
         //COME PRIMO TENTATIVO NON USO MASCHERE, DUNQUE UN UNICO VETTORE DI FEATURE
-        String[] features = convertToString(dataHSHVSV);
-
-
-        return features;
+        return convertToString(dataHSHVSV);
     }
 
     //Imposta la maschera le maschere da usare per il calcolo dell'istogramma
