@@ -63,11 +63,12 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
         android:id="@+id/insert_query_image_text_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Clicca sul button in basso per avviare l'indicizzazione"
-        android:textStyle="bold"
-        android:layout_marginTop="44dp"
+        android:layout_alignParentStart="true"
         android:layout_below="@+id/progressIstogramma"
-        android:layout_alignParentStart="true" />
+        android:layout_marginTop="44dp"
+        android:text="Clicca sul button in basso per avviare l'estrazione delle features"
+        android:textSize="13dp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/pesoIstogramma"
@@ -118,9 +119,9 @@ tools:context="com.example.rosannacatte.cbirsoftwarever2.Cbir">
         android:id="@+id/attendere"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Indicizzazione in corso, attendere..."
+        android:text="Estrazione features in corso, attendere..."
+        android:layout_marginTop="10dp"
         android:layout_below="@+id/progressIndicizzazione"
-        android:layout_alignEnd="@+id/progressIndicizzazione"
-        android:layout_marginTop="12dp" />
+        android:layout_alignEnd="@+id/pesoORB" />
 
 </RelativeLayout>

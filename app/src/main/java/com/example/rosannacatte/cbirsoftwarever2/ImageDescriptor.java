@@ -289,7 +289,7 @@ public class ImageDescriptor {
 
         //Oggetto Mat che conterrà le features dell'immagine
         Mat descriptors = new Mat();
-        // Oggetto Mat che conterrà i keypoint dell'immagine
+        // Oggetto Mat che conterrà i keypoints dell'immagine
         MatOfKeyPoint keypoints = new MatOfKeyPoint();
 
         //Individuazione punti chiave dell'immagine

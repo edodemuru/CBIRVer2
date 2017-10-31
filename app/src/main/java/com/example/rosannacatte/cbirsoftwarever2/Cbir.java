@@ -142,8 +142,9 @@ public class Cbir extends AppCompatActivity {
     private TextView instructions;
 
     // Progress Bar per indicizzazione immagini
-    private ProgressBar progressIndicizzazione;
+    private ProgressBar progressEstrazioneFeatures;
 
+    // Textview messaggio di attesa
     private TextView attendere;
 
     // Peso delle features nella computazione
@@ -151,19 +152,10 @@ public class Cbir extends AppCompatActivity {
     private int weightOrb;
 
     //Flag per bloccare l'indicizzazione e la comparazione nel caso in cui l'applicazione venga riavviata
-    private boolean stopIndicizzazione;
+    private boolean stopEstrazioneFeatures;
     public boolean stopComparazione;
 
-    public static ArrayList<ImmagineDaMostrare> immaginiDaVisualizzare;
 
-    Handler mainHandler = new Handler(){
-        @Override
-        public void handleMessage(Message msg) {
-            // Incremento la progress bar di una unità
-            progressIndicizzazione.incrementProgressBy(1);
-
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,7 +168,7 @@ public class Cbir extends AppCompatActivity {
         weightDescriptorSeekbar = (SeekBar) findViewById(R.id.pesoDescrittori);
         weightProgressIstogrammaText = (TextView) findViewById(R.id.progressIstogramma);
         weightProgressORBText = (TextView) findViewById(R.id.progressORB);
-        progressIndicizzazione = (ProgressBar) findViewById(R.id.progressIndicizzazione);
+        progressEstrazioneFeatures = (ProgressBar) findViewById(R.id.progressIndicizzazione);
 
         //Inizializzo ed elimino dall'interfaccia il messaggio di attesa
         attendere = (TextView) findViewById(R.id.attendere);
@@ -188,8 +180,8 @@ public class Cbir extends AppCompatActivity {
         weightDescriptorSeekbar.setEnabled(true);
 
         //Disabilito la progressBar
-        progressIndicizzazione.setVisibility(View.GONE);
-        progressIndicizzazione.setProgress(0);
+        progressEstrazioneFeatures.setVisibility(View.GONE);
+        progressEstrazioneFeatures.setProgress(0);
 
         //Carico i valori di default, prelevandoli dall'interfaccia
         weightOrb = Integer.parseInt(weightProgressORBText.getText().toString().split("%")[0]);
@@ -256,7 +248,7 @@ public class Cbir extends AppCompatActivity {
             Log.i(TAG, "Permessi già verificati");
 
 
-            //Una volta premuto il floating action button, devo avviare l'indicizzazione
+            //Una volta premuto il floating action button, devo avviare l'estrazione delle features
             insertQueryImageFAB = (FloatingActionButton) findViewById(R.id.insert_query_image_button);
             insertQueryImageFAB.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -268,26 +260,26 @@ public class Cbir extends AppCompatActivity {
                     listaPercorsiImmagini = new ArrayList<>();
                     listaPercorsiImmagini = recuperaPercorsoImmagini();
 
-                    // Attivazione elementi grafici per lo stato dell'indicizzazione
-                    progressIndicizzazione.setMax(listaPercorsiImmagini.size() - 1);
-                    progressIndicizzazione.setVisibility(View.VISIBLE);
+                    // Attivazione elementi grafici per lo stato dsi estrazione features
+                    progressEstrazioneFeatures.setMax(listaPercorsiImmagini.size() - 1);
+                    progressEstrazioneFeatures.setVisibility(View.VISIBLE);
                     attendere.setVisibility(View.VISIBLE);
 
                     weightDescriptorSeekbar.setEnabled(false);
 
                     instructions.setVisibility(View.GONE);
 
-                    stopIndicizzazione = false;
+                    stopEstrazioneFeatures = false;
 
                     // Utilizzo un thread per limitare il carico di lavoro sul thread principale
                     Thread thread = new Thread() {
                         @Override
                         public void run() {
                             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-                            indicizza(listaPercorsiImmagini);
+                            estraiFeaturesDataset(listaPercorsiImmagini);
 
 
-                            if (!stopIndicizzazione) {
+                            if (!stopEstrazioneFeatures) {
 
                                 Log.i(TAG, "Tipo di descrittore " + tipoDescrittore + " dimensione immagini analizzate " + immaginiAnalizzate.size());
                                 //Creo un intent per aprire la galleria e selezionare un'immagine da anlizzare
@@ -344,7 +336,7 @@ public class Cbir extends AppCompatActivity {
         Log.i(TAG, "Richiamato onDestroy");
 
         // Flag per blocco indicizzazione
-        stopIndicizzazione = true;
+        stopEstrazioneFeatures = true;
         stopComparazione = true;
 
         // Se il sistema è in fase di comparazione dei risultati, blocco la comparazione
@@ -365,7 +357,7 @@ public class Cbir extends AppCompatActivity {
         weightProgressIstogrammaText = null;
         weightProgressORBText = null;
         instructions = null;
-        progressIndicizzazione = null;
+        progressEstrazioneFeatures = null;
         attendere = null;
         listaPercorsiImmagini= null;
         preference = null;
@@ -475,7 +467,7 @@ public class Cbir extends AppCompatActivity {
     }
 
     //Il metodo seguente compie tutte le operazioni per l'indicizzazione
-    private void indicizza(ArrayList<String> percorsoImmagini) {
+    private void estraiFeaturesDataset(ArrayList<String> percorsoImmagini) {
 
         // Percorso dell'immagine considerata
         String percorsoImmagine;
@@ -483,12 +475,12 @@ public class Cbir extends AppCompatActivity {
         String[] features_Ist_Only;
         //Vettore di features estratte con l'istogramma di colore, nel caso in cui tipoDescrittore = BOTH
         String[] features_Ist_Both;
-        // Immagine da indicizzare con tipoDescrittore = BOTH
-        Mat immagineDaIndicizzare;
-        // Immagine da indicizzare con tipoDescrittore = HIST
-        Mat immagineDaIndicizzare_Ist;
-        // Immagine da indicizzare con tipoDescrittore = ORB
-        Mat immagineDaIndicizzare_Orb;
+        // Immagine da analizzare con tipoDescrittore = BOTH
+        Mat immagineDaAnalizzare;
+        // Immagine da analizzare con tipoDescrittore = HIST
+        Mat immagineDaAnalizzare_Ist;
+        // Immagine da analizzare con tipoDescrittore = ORB
+        Mat immagineDaAnalizzare_Orb;
         // Lista di features da salvare nello shared preference
         ArraySet<String> listaFeatures;
 
@@ -497,12 +489,12 @@ public class Cbir extends AppCompatActivity {
         editor.clear();
 
 
-        for (int i = 0; i < percorsoImmagini.size() && !stopIndicizzazione; i++) {
+        for (int i = 0; i < percorsoImmagini.size() && !stopEstrazioneFeatures; i++) {
 
-            Log.i(TAG,"Avvio indicizzazione");
+            Log.i(TAG,"Avvio estrazione features");
 
             // Incremento la progress bar di una unità
-            progressIndicizzazione.incrementProgressBy(1);
+            progressEstrazioneFeatures.incrementProgressBy(1);
 
             percorsoImmagine = percorsoImmagini.get(i);
 
@@ -517,11 +509,11 @@ public class Cbir extends AppCompatActivity {
                 if (tipoDescrittore.equals(TipoDiDescrittore.ISTOGRAMMA)) {
                     Log.i(TAG, "Calcolo features con istogramma di colore");
 
-                    immagineDaIndicizzare = caricaImmagineIst(percorsoImmagine);
+                    immagineDaAnalizzare = caricaImmagineIst(percorsoImmagine);
                     features_Ist_Only = new String[TOTAL_DIMENSION_WITH_HIST];
 
                     imageDescriptor = new ImageDescriptor();
-                    features_Ist_Only = imageDescriptor.calculateHist(immagineDaIndicizzare);
+                    features_Ist_Only = imageDescriptor.calculateHist(immagineDaAnalizzare);
 
                     for (int j = 0; j < features_Ist_Only.length; j++) {
 
@@ -536,10 +528,10 @@ public class Cbir extends AppCompatActivity {
                 else if (tipoDescrittore.equals(TipoDiDescrittore.ORB)) {
                     Log.i(TAG, "Calcolo features con ORB");
 
-                    immagineDaIndicizzare = caricaImmagineOrb(percorsoImmagine);
+                    immagineDaAnalizzare = caricaImmagineOrb(percorsoImmagine);
 
                     imageDescriptor = new ImageDescriptor();
-                    ImmagineOrb immagineAnalizzata = imageDescriptor.calculateOrb(immagineDaIndicizzare);
+                    ImmagineOrb immagineAnalizzata = imageDescriptor.calculateOrb(immagineDaAnalizzare);
                     immagineAnalizzata.setPath(percorsoImmagine);
 
                     immaginiAnalizzate.add(immagineAnalizzata);
@@ -551,11 +543,11 @@ public class Cbir extends AppCompatActivity {
                     Log.i(TAG, "Peso ORB " + weightOrb + " Peso Istogramma " + weightIstogramma);
 
                     //Calcolo Istogramma di colore
-                    immagineDaIndicizzare_Ist = caricaImmagineIst(percorsoImmagine);
+                    immagineDaAnalizzare_Ist = caricaImmagineIst(percorsoImmagine);
 
                     imageDescriptor = new ImageDescriptor();
 
-                    features_Ist_Both = imageDescriptor.calculateHist(immagineDaIndicizzare_Ist);
+                    features_Ist_Both = imageDescriptor.calculateHist(immagineDaAnalizzare_Ist);
 
                     for (int j = 0; j < features_Ist_Both.length; j++) {
 
@@ -567,8 +559,8 @@ public class Cbir extends AppCompatActivity {
                     editor.putStringSet(percorsoImmagine, listaFeatures);
 
                     //Calcolo features con Orb
-                    immagineDaIndicizzare_Orb = caricaImmagineOrb(percorsoImmagine);
-                    ImmagineOrb immagineAnalizzata = imageDescriptor.calculateOrb(immagineDaIndicizzare_Orb);
+                    immagineDaAnalizzare_Orb = caricaImmagineOrb(percorsoImmagine);
+                    ImmagineOrb immagineAnalizzata = imageDescriptor.calculateOrb(immagineDaAnalizzare_Orb);
                     immagineAnalizzata.setPath(percorsoImmagine);
                     immaginiAnalizzate.add(immagineAnalizzata);
 
@@ -577,15 +569,15 @@ public class Cbir extends AppCompatActivity {
 
 
             } else {
-                // Immagini che non è possibile indicizzare
+                // Immagini che non è possibile analizzare
 
             }
 
         }
 
 
-        if (!stopIndicizzazione) {
-            //Completo il salvataggio e l'indicizzazione
+        if (!stopEstrazioneFeatures) {
+            //Completo il salvataggio delle features
             editor.commit();
         }
 
@@ -701,7 +693,7 @@ public class Cbir extends AppCompatActivity {
             mostraImmagini.setVisibility(View.VISIBLE);
 
             scegliDescr.setVisibility(View.GONE);
-            progressIndicizzazione.setVisibility(View.GONE);
+            progressEstrazioneFeatures.setVisibility(View.GONE);
             attendere.setVisibility(View.GONE);
 
             insertQueryImageFAB.setVisibility(View.VISIBLE);
@@ -735,6 +727,8 @@ public class Cbir extends AppCompatActivity {
                     restart(getApplicationContext(),0);
 
 
+
+
                 }
 
             });
@@ -759,7 +753,7 @@ public class Cbir extends AppCompatActivity {
 
             attendere.setText("Comparazione immagini in corso, attendere...");
             attendere.setPadding(250, 0, 0, 0);
-            progressIndicizzazione.setIndeterminate(true);
+            progressEstrazioneFeatures.setIndeterminate(true);
 
             stopComparazione = false;
         }
@@ -823,9 +817,9 @@ public class Cbir extends AppCompatActivity {
 
     //Codice per riavvio applicazione
     public static void restart(Context context, int delay) {
-        if (delay == 0) {
+        /*if (delay == 0) {
             delay = 1;
-        }
+        }*/
         Log.e("", "restarting app");
         Intent restartIntent = context.getPackageManager()
                 .getLaunchIntentForPackage(context.getPackageName() );
@@ -835,6 +829,7 @@ public class Cbir extends AppCompatActivity {
         AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         manager.set(AlarmManager.RTC, System.currentTimeMillis() + delay, intent);
         System.exit(2);
+
     }
 
 

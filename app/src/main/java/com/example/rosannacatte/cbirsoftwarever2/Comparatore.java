@@ -111,7 +111,7 @@ public class Comparatore {
 
 
         if (!this.stopComparazione)
-            return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+            return ordinaArrayListIst(listaPercorsoImmaginiDaMostrare);
         else
             return null;
     }
@@ -183,7 +183,7 @@ public class Comparatore {
         // del quale le immagini saranno ordinate sulla base della distanza
 
         if (!this.stopComparazione)
-            return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+            return ordinaArrayListOrb(listaPercorsoImmaginiDaMostrare);
         else
             return null;
 
@@ -192,7 +192,7 @@ public class Comparatore {
     public ArrayList<ImmagineDaMostrare> calcolaDistanzaBoth(Mat queryImageIst, Mat queryImageOrb, float pesoIst, float pesoOrb) {
 
 
-        //Calcolo distanza Istogramma
+        //ISTOGRAMMA
 
         //Recupero i valori delle features dell'immagine query
         int[] valoriFeaturesQueryIst = recuperaValoreFeaturesHist(imageDescriptor.calculateHist(queryImageIst));
@@ -315,7 +315,7 @@ public class Comparatore {
             listaPercorsoImmaginiDaMostrare = mediaPesata(listaPercorsoImmaginiDaMostrare, pesoIst, pesoOrb);
 
 
-            return ordinaArrayList(listaPercorsoImmaginiDaMostrare);
+            return ordinaArrayListBoth(listaPercorsoImmaginiDaMostrare);
         } else
             return null;
 
@@ -336,24 +336,6 @@ public class Comparatore {
         }
 
         return features;
-    }
-
-    private byte[] recuperaValoreFeaturesORB(String[] listaValori) {
-
-        //Vettore di interi che conterrà tutte le features con cui effettuare il calcolo della distanza
-        byte[] features = new byte[TOTAL_DIMENSION_WITH_ORB];
-
-        //Recupero il valore dei byte che avevo codificato
-        for (int i = 0; i < listaValori.length; i++) {
-            int index = listaValori[i].indexOf("_");
-            features[i] = listaValori[i].substring(index + 1).getBytes(StandardCharsets.ISO_8859_1)[0];
-
-
-        }
-
-        return features;
-
-
     }
 
     //Metodo per convertire un set di stringhe in un array di stringhe
@@ -479,6 +461,77 @@ public class Comparatore {
     private int recuperaInt(String stringa) {
         int index = stringa.indexOf("_");
         return Integer.parseInt(stringa.substring(0, index));
+    }
+
+    private ArrayList<ImmagineDaMostrare> ordinaArrayListBoth(ArrayList<ImmagineDaMostrare> arrayList){
+
+        // Ordino l'arrayList basandomi sulla distanza id entrambi i descrittori
+        for (int i = 0; i < arrayList.size() - 1; i++) {
+            for (int j = 0; j < arrayList.size() - i - 1; j++) {
+
+                float distanza1 = arrayList.get(j).getDistanzaBoth();
+                float distanza2 = arrayList.get(j + 1).getDistanzaBoth();
+
+                if (distanza1 > distanza2) {
+                    ImmagineDaMostrare tmp1 = arrayList.get(j);
+                    ImmagineDaMostrare tmp2 = arrayList.get(j + 1);
+
+                    arrayList.remove(j);
+                    arrayList.add(j, tmp2);
+                    arrayList.remove(j + 1);
+                    arrayList.add(j + 1, tmp1);
+                }
+            }
+        }
+
+        return arrayList;
+
+
+    }
+
+    private ArrayList<ImmagineDaMostrare> ordinaArrayListIst(ArrayList<ImmagineDaMostrare> arrayList){
+        for (int i = 0; i < arrayList.size() - 1; i++) {
+            for (int j = 0; j < arrayList.size() - i - 1; j++) {
+
+                int distanza1 = (int) arrayList.get(j).getDistanzaIst();
+                int distanza2 = (int) arrayList.get(j + 1).getDistanzaIst();
+
+                if (distanza1 > distanza2) {
+                    ImmagineDaMostrare tmp1 = arrayList.get(j);
+                    ImmagineDaMostrare tmp2 = arrayList.get(j + 1);
+
+                    arrayList.remove(j);
+                    arrayList.add(j, tmp2);
+                    arrayList.remove(j + 1);
+                    arrayList.add(j + 1, tmp1);
+                }
+            }
+        }
+        return arrayList;
+
+    }
+
+    private ArrayList<ImmagineDaMostrare> ordinaArrayListOrb(ArrayList<ImmagineDaMostrare>arrayList){
+        //Ordino le distanze dell'ArrayList basandomi sull'algoritmo Orb
+        for (int i = 0; i < arrayList.size() - 1; i++) {
+            for (int j = 0; j < arrayList.size() - i - 1; j++) {
+
+                float distanza1 = arrayList.get(j).getDistanzaOrb();
+                float distanza2 = arrayList.get(j + 1).getDistanzaOrb();
+
+                if (distanza1 > distanza2) {
+                    ImmagineDaMostrare tmp1 = arrayList.get(j);
+                    ImmagineDaMostrare tmp2 = arrayList.get(j + 1);
+
+                    arrayList.remove(j);
+                    arrayList.add(j, tmp2);
+                    arrayList.remove(j + 1);
+                    arrayList.add(j + 1, tmp1);
+                }
+            }
+        }
+
+        return arrayList;
     }
 
     private ArrayList<ImmagineDaMostrare> ordinaArrayList(ArrayList<ImmagineDaMostrare> arrayList) {
